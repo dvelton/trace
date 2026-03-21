@@ -2,13 +2,17 @@
 
 Trace is a format for publishing AI-assisted writing with provenance. It preserves the human's verbatim prompts inline with the text they produced, so readers can see how the final output was actually made.
 
-This repository contains the Trace format specification website and a set of interactive examples.
+**Get the closing prompt and try it now: https://dvelton.github.io/trace/**
 
-## How it works
+## How to use it
 
-Paste the closing prompt at the end of any AI session (ChatGPT, Claude, Gemini, Copilot, Perplexity). The AI reconstructs a Trace document from the conversation history, reproducing your prompts word for word alongside the text they generated.
+1. Write something with any AI tool (ChatGPT, Claude, Gemini, Copilot, Perplexity, anything).
+2. When you're done, visit **https://dvelton.github.io/trace/** and copy the closing prompt.
+3. Paste it into the same AI conversation. The AI already has your full session in context — it will reconstruct a Trace document from what it can see, reproducing your prompts word for word alongside the text they generated.
 
-A Trace has two views:
+That's it. No signup, no install, no extension. One prompt, pasted at the end.
+
+A Trace has two records:
 
 - **Session record** — your messages in chronological order, showing the arc of the writing process
 - **Unit record** — the final output annotated paragraph by paragraph, mapping each section to the prompt that shaped it
