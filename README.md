@@ -1,6 +1,6 @@
 # Trace
 
-Trace is a format for publishing AI-assisted writing with provenance. It preserves the human's verbatim prompts inline with the text they produced, so readers can see how the final output was actually made.
+Trace is a format for publishing AI-assisted writing with provenance. It preserves the human's verbatim prompts inline with the text they produced, so readers can see how the final output was actually made. Probably not for normal daily use, but there may be times and places where this sort of radical transparency can make for compelling reading and a glimpse into the author's mind that the author may wish to share.
 
 **To try it get the closing prompt here: https://dvelton.github.io/trace/**
 
