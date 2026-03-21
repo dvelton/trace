@@ -335,6 +335,99 @@
       line-height: 1.7;
     }
 
+    /* ── View toggle ── */
+
+    .view-toggle {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+    }
+
+    .toggle-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b6155;
+      background: none;
+      border: 1px solid #ddd5c8;
+      padding: 7px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .toggle-btn:hover {
+      color: #1e1a14;
+      border-color: #b5ad9e;
+    }
+
+    .toggle-btn.active {
+      background: #1e1a14;
+      color: #f5f0e8;
+      border-color: #1e1a14;
+    }
+
+    .view-container {
+      display: none;
+    }
+
+    .view-container.active {
+      display: block;
+    }
+
+    /* ── Session view ── */
+
+    .session-card {
+      background: #fefcf8;
+      border: 1px solid #ddd5c8;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      padding: 8px 32px;
+      margin-bottom: 20px;
+    }
+
+    .session-message {
+      padding: 20px 0;
+    }
+
+    .session-message + .session-message {
+      border-top: 1px solid #ece7de;
+    }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .message-number {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      font-weight: bold;
+      color: #b5ad9e;
+    }
+
+    .message-role {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .role-prompt { color: rgba(245, 158, 11, 0.85); }
+    .role-reaction { color: #ef4444; }
+    .role-edit { color: #6b6155; }
+    .role-human { color: #16a34a; }
+
+    .message-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #4a3f32;
+    }
+
     /* ── Responsive ── */
 
     @media (max-width: 600px) {
@@ -360,6 +453,10 @@
         padding: 20px;
         padding-top: 44px;
       }
+
+      .session-card {
+        padding: 8px 20px;
+      }
     }
   </style>
 </head>
@@ -382,14 +479,15 @@
       <div class="code-block-wrapper">
         <pre class="code-block" id="closing-prompt">Format this conversation as a Trace document using the schema below.
 
-A Trace is a structured record of AI-assisted writing. It shows the human's prompts verbatim, inline with the text they produced, so a reader can see how the final output was actually made.
+A Trace is a structured record of AI-assisted writing. It preserves the human's prompts verbatim so a reader can see how the final output was actually made. A Trace has two records: the session record (your messages in chronological order) and the unit record (the final output annotated paragraph by paragraph).
 
 Rules:
 - Do not paraphrase, clean up, or improve my prompts. Reproduce them word for word, including typos, hedging, and informal language.
 - Do not editorialize or add commentary about my process.
-- If I reacted to a response before sending a new prompt (e.g. "no that's wrong, try again" or "too formal"), include that as REACTION.
-- Any text in the final output that came from me directly — not from an AI response — should be marked TYPE: human.
-- The final output appears first, followed by the full Trace.
+- In the session record, list every message I sent, in order. Tag each as prompt (new instruction), reaction (response to your output), or edit (I changed the text directly).
+- In the unit record, map each paragraph of the final output to the prompt and reaction that most directly shaped it.
+- Any text in the final output that I wrote directly — not from an AI response — should be marked TYPE: human.
+- The final output appears first, followed by both records.
 
 Schema (use this exactly):
 
@@ -397,6 +495,7 @@ Schema (use this exactly):
 TRACE
 [title or topic]
 [date]
+[tool used — optional]
 ---
 
 FINAL OUTPUT:
@@ -404,13 +503,31 @@ FINAL OUTPUT:
 
 ---
 
-TRACE RECORD:
+SESSION RECORD:
+
+[1]
+MESSAGE: [my exact words, verbatim]
+ROLE: prompt | reaction | edit
+
+[2]
+MESSAGE: [my exact words, verbatim]
+ROLE: prompt | reaction | edit
+
+...
+
+[HUMAN ADDITIONS]
+TEXT: [anything I wrote directly into the final output, not via prompting]
+
+---
+
+UNIT RECORD:
 
 [UNIT 1]
-TEXT: [the sentence or paragraph this unit covers, copied from final output]
-PROMPT: [my exact words, verbatim, that produced this — or 'n/a' if unprompted]
-REACTION: [any reaction I gave to an AI response before next prompt — omit if none]
-TYPE: [prompted | human | hybrid]
+TEXT: [sentence or paragraph from final output]
+PROMPT: [verbatim human input — reproduce exactly, do not clean up]
+REACTION: [human's response to AI output, before next prompt — omit if none]
+TYPE: prompted | human | hybrid
+ROUNDS: [session message numbers that shaped this unit]
 
 [UNIT 2]
 ...repeat for each meaningful unit of the final output...
@@ -426,9 +543,19 @@ END TRACE</pre>
   <section>
     <div class="container">
       <h2>What a Trace looks like</h2>
-      <p class="example-instruction">Click any paragraph to see the exact words that produced it.</p>
-      <div class="example-card" id="example-card"></div>
-      <button class="reveal-btn" id="reveal-btn" onclick="revealAll()">Reveal all</button>
+      <div class="view-toggle">
+        <button class="toggle-btn active" onclick="switchView('session')">Session view</button>
+        <button class="toggle-btn" onclick="switchView('unit')">Unit view</button>
+      </div>
+      <div class="view-container active" id="session-view">
+        <p class="example-instruction">The human's messages, in the order they were sent.</p>
+        <div class="session-card" id="session-card"></div>
+      </div>
+      <div class="view-container" id="unit-view">
+        <p class="example-instruction">Click any paragraph to see the exact words that produced it.</p>
+        <div class="example-card" id="example-card"></div>
+        <button class="reveal-btn" id="reveal-btn" onclick="revealAll()">Reveal all</button>
+      </div>
     </div>
   </section>
 
@@ -450,19 +577,52 @@ FINAL OUTPUT:
 
 ---
 
-TRACE RECORD:
+SESSION RECORD:
+
+[n]
+MESSAGE: [verbatim human input]
+ROLE: prompt | reaction | edit
+
+[HUMAN ADDITIONS]
+TEXT: [anything written directly, not via prompting]
+
+---
+
+UNIT RECORD:
 
 [UNIT n]
 TEXT: [sentence or paragraph from final output]
 PROMPT: [verbatim human input — reproduce exactly, do not clean up]
 REACTION: [human's response to AI output, before next prompt — omit if none]
 TYPE: prompted | human | hybrid
+ROUNDS: [session message numbers that shaped this unit]
 
 ---
 END TRACE</pre>
         <button class="copy-btn" onclick="copyToClipboard(document.getElementById('schema-block').textContent, this)">Copy</button>
       </div>
 
+      <h3 style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: #6b6155; margin-top: 36px; margin-bottom: 16px;">Session Record</h3>
+      <div class="def-list">
+        <div class="def-item">
+          <div class="def-term">MESSAGE</div>
+          <div class="def-desc">The human's exact words, as typed. Not paraphrased. Not tidied. Typos and informal language preserved.</div>
+        </div>
+        <div class="def-item">
+          <div class="def-term">ROLE: prompt</div>
+          <div class="def-desc">New instruction or request to the AI.</div>
+        </div>
+        <div class="def-item">
+          <div class="def-term">ROLE: reaction</div>
+          <div class="def-desc">Response to AI output. What the human rejected, corrected, or refined.</div>
+        </div>
+        <div class="def-item">
+          <div class="def-term">ROLE: edit</div>
+          <div class="def-desc">The human made direct changes to the text rather than prompting the AI.</div>
+        </div>
+      </div>
+
+      <h3 style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: #6b6155; margin-top: 36px; margin-bottom: 16px;">Unit Record</h3>
       <div class="def-list">
         <div class="def-item">
           <div class="def-term">TEXT</div>
@@ -488,6 +648,10 @@ END TRACE</pre>
           <div class="def-term">TYPE: hybrid</div>
           <div class="def-desc">The human significantly edited or rewrote AI-generated text.</div>
         </div>
+        <div class="def-item">
+          <div class="def-term">ROUNDS</div>
+          <div class="def-desc">Which session message numbers shaped this unit. Links the unit view back to the session record.</div>
+        </div>
       </div>
     </div>
   </section>
@@ -496,7 +660,7 @@ END TRACE</pre>
   <section>
     <div class="container">
       <h2>See It In Action</h2>
-      <p class="section-intro">Three fictional examples of Trace documents, each showing a different kind of AI-assisted writing. Click into one, read the finished text, then click any paragraph to see the raw prompt behind it.</p>
+      <p class="section-intro">Five examples of Trace documents in both session and unit views. Click into one to read the finished text, then explore the prompts behind it.</p>
       <p style="margin-top: 20px;"><a href="examples/" style="color: #1e1a14; text-decoration: underline; text-underline-offset: 3px; font-size: 17px;">Browse examples</a></p>
     </div>
   </section>
@@ -510,55 +674,98 @@ END TRACE</pre>
   </div>
 
   <script>
+    var sessionMessages = [
+      { id: 1, message: "write a linkedin post about being laid off i was a senior pm for 4 years at tyndale and honestly it sucks but i need to be professional about it", role: "prompt" },
+      { id: 2, message: "too soft still, opened with \u2018after four incredible years\u2019 which is exactly the kind of linkedin voice i don\u2019t want. just say i was laid off, don\u2019t dress it up", role: "reaction" },
+      { id: 3, message: "ok the opening is wrong can you just start with the actual thing that happened, like \u2018last week i was laid off\u2019 and then say it stings, keep it short", role: "prompt" },
+      { id: 4, message: "better but it said \u2018it still stings, as these things do\u2019 \u2014 \u2018as these things do\u2019 is filler, cut it", role: "reaction" },
+      { id: 5, message: "keep that opening line about last week, cut the whole middle paragraph about \u2018what i learned\u2019 because nobody cares about that in a layoff post, and instead just say what i\u2019m looking for: senior IC or lead PM, climate tech or devtools, somewhere that cares about craft", role: "prompt" },
+      { id: 6, message: "the cta at the end is so generic \u2018open to exploring new challenges in product leadership\u2019 no. say something like \u2018if you\u2019re building something you care about and need someone who thinks in systems and ships fast, let\u2019s talk\u2019", role: "prompt" },
+      { id: 7, message: "also \u2018warm intros welcome\u2019 sounds like a pitch deck who says that", role: "reaction" }
+    ];
+
+    var humanAdditions = [
+      "I\u2019ll be okay. Just wanted to say it plainly, to real people, before the algorithm buries it."
+    ];
+
     var exampleUnits = [
       {
         id: 1,
-        text: "Last week, I was laid off from my role as Senior PM at Veritas after four years.",
-        prompt: "write a linkedin post about being laid off i was a senior pm for 4 years at veritas and honestly it sucks but i need to be professional about it",
-        reaction: "too soft still, opened with 'after four incredible years' which is exactly the kind of linkedin voice i don't want. just say i was laid off, don't dress it up",
-        type: "prompted"
+        text: "Last week, I was laid off from my role as Senior PM at Tyndale after four years.",
+        prompt: "write a linkedin post about being laid off i was a senior pm for 4 years at tyndale and honestly it sucks but i need to be professional about it",
+        reaction: "too soft still, opened with \u2018after four incredible years\u2019 which is exactly the kind of linkedin voice i don\u2019t want. just say i was laid off, don\u2019t dress it up",
+        type: "prompted",
+        rounds: "1, 2"
       },
       {
         id: 2,
         text: "It still stings.",
-        prompt: "ok the opening is wrong can you just start with the actual thing that happened, like 'last week i was laid off' and then say it stings, keep it short",
-        reaction: "better but it said 'it still stings, as these things do' \u2014 'as these things do' is filler, cut it",
-        type: "prompted"
+        prompt: "ok the opening is wrong can you just start with the actual thing that happened, like \u2018last week i was laid off\u2019 and then say it stings, keep it short",
+        reaction: "better but it said \u2018it still stings, as these things do\u2019 \u2014 \u2018as these things do\u2019 is filler, cut it",
+        type: "prompted",
+        rounds: "3, 4"
       },
       {
         id: 3,
         text: "I\u2019m looking for senior IC or lead PM roles, ideally in climate tech or developer tools. I care about the craft of product work and I want to be somewhere that does too.",
-        prompt: "keep that opening line about last week, cut the whole middle paragraph about 'what i learned' because nobody cares about that in a layoff post, and instead just say what i'm looking for: senior IC or lead PM, climate tech or devtools, somewhere that cares about craft",
+        prompt: "keep that opening line about last week, cut the whole middle paragraph about \u2018what i learned\u2019 because nobody cares about that in a layoff post, and instead just say what i\u2019m looking for: senior IC or lead PM, climate tech or devtools, somewhere that cares about craft",
         reaction: null,
-        type: "prompted"
+        type: "prompted",
+        rounds: "5"
       },
       {
         id: 4,
         text: "If you\u2019re building something you care about and need someone who thinks in systems and ships in weeks, let\u2019s talk.",
-        prompt: "the cta at the end is so generic 'open to exploring new challenges in product leadership' no. say something like 'if you're building something you care about and need someone who thinks in systems and ships fast, let's talk'",
+        prompt: "the cta at the end is so generic \u2018open to exploring new challenges in product leadership\u2019 no. say something like \u2018if you\u2019re building something you care about and need someone who thinks in systems and ships fast, let\u2019s talk\u2019",
         reaction: null,
-        type: "prompted"
+        type: "prompted",
+        rounds: "6"
       },
       {
         id: 5,
         text: "If you know someone I should meet, I\u2019d love an introduction.",
-        prompt: "also 'warm intros welcome' sounds like a pitch deck who says that",
+        prompt: "also \u2018warm intros welcome\u2019 sounds like a pitch deck who says that",
         reaction: null,
-        type: "prompted"
+        type: "prompted",
+        rounds: "7"
       },
       {
         id: 6,
         text: "I\u2019ll be okay. Just wanted to say it plainly, to real people, before the algorithm buries it.",
         prompt: null,
         reaction: null,
-        type: "human"
+        type: "human",
+        rounds: null
       }
     ];
 
-    function buildExample() {
+    function buildSessionView() {
+      var card = document.getElementById('session-card');
+      var html = '';
+      for (var i = 0; i < sessionMessages.length; i++) {
+        var msg = sessionMessages[i];
+        html += '<div class="session-message">';
+        html += '<div class="message-header">';
+        html += '<span class="message-number">[' + msg.id + ']</span>';
+        html += '<span class="message-role role-' + msg.role + '">' + msg.role.toUpperCase() + '</span>';
+        html += '</div>';
+        html += '<div class="message-text">' + msg.message + '</div>';
+        html += '</div>';
+      }
+      for (var i = 0; i < humanAdditions.length; i++) {
+        html += '<div class="session-message">';
+        html += '<div class="message-header">';
+        html += '<span class="message-role role-human">HUMAN ADDITION</span>';
+        html += '</div>';
+        html += '<div class="message-text">' + humanAdditions[i] + '</div>';
+        html += '</div>';
+      }
+      card.innerHTML = html;
+    }
+
+    function buildUnitView() {
       var card = document.getElementById('example-card');
       var html = '';
-
       for (var i = 0; i < exampleUnits.length; i++) {
         var unit = exampleUnits[i];
         html += '<div class="trace-unit type-' + unit.type + '" data-id="' + unit.id + '" onclick="toggleUnit(' + unit.id + ')">';
@@ -566,11 +773,9 @@ END TRACE</pre>
         html += '</div>';
         html += '<div class="annotation" id="annotation-' + unit.id + '">';
         html += '<div class="annotation-inner type-' + unit.type + '">';
-
         var labelClass = 'label-' + unit.type;
         var labelText = unit.type.toUpperCase();
         html += '<div class="annotation-label ' + labelClass + '">' + labelText + '</div>';
-
         if (unit.type === 'human') {
           html += '<div class="human-note">Written directly by the author. No AI prompt produced this text.</div>';
         } else {
@@ -581,37 +786,47 @@ END TRACE</pre>
             html += '<div class="reaction-label">Reaction</div>';
             html += '<div class="reaction-text">' + unit.reaction + '</div>';
           }
+          if (unit.rounds) {
+            html += '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif; font-size: 11px; color: #b5ad9e; margin-top: 10px;">Rounds: ' + unit.rounds + '</div>';
+          }
         }
-
         html += '</div></div>';
       }
-
       card.innerHTML = html;
+    }
+
+    function switchView(view) {
+      var containers = document.querySelectorAll('.view-container');
+      var buttons = document.querySelectorAll('.toggle-btn');
+      for (var i = 0; i < containers.length; i++) {
+        containers[i].classList.remove('active');
+      }
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].classList.remove('active');
+      }
+      document.getElementById(view + '-view').classList.add('active');
+      var btn = document.querySelector('.toggle-btn[onclick="switchView(\'' + view + '\')"]');
+      if (btn) btn.classList.add('active');
     }
 
     function toggleUnit(id) {
       var annotation = document.getElementById('annotation-' + id);
       var unit = document.querySelector('.trace-unit[data-id="' + id + '"]');
-      var isOpen = annotation.classList.contains('open');
-
       annotation.classList.toggle('open');
       unit.classList.toggle('open');
-
       updateRevealBtn();
     }
 
     function revealAll() {
-      var annotations = document.querySelectorAll('.annotation');
-      var units = document.querySelectorAll('.trace-unit');
+      var annotations = document.querySelectorAll('#unit-view .annotation');
+      var units = document.querySelectorAll('#unit-view .trace-unit');
       var allOpen = true;
-
       for (var i = 0; i < annotations.length; i++) {
         if (!annotations[i].classList.contains('open')) {
           allOpen = false;
           break;
         }
       }
-
       for (var i = 0; i < annotations.length; i++) {
         if (allOpen) {
           annotations[i].classList.remove('open');
@@ -621,12 +836,11 @@ END TRACE</pre>
           units[i].classList.add('open');
         }
       }
-
       updateRevealBtn();
     }
 
     function updateRevealBtn() {
-      var annotations = document.querySelectorAll('.annotation');
+      var annotations = document.querySelectorAll('#unit-view .annotation');
       var allOpen = true;
       for (var i = 0; i < annotations.length; i++) {
         if (!annotations[i].classList.contains('open')) {
@@ -649,7 +863,8 @@ END TRACE</pre>
       });
     }
 
-    buildExample();
+    buildSessionView();
+    buildUnitView();
   </script>
 
 </body>

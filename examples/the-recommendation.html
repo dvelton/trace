@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trace: The Recommendation</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f5f0e8;
+      color: #1e1a14;
+      font-family: Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Back link ── */
+    .back-link {
+      display: inline-block;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      text-decoration: none;
+      padding: 24px 0 0;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: #1e1a14; }
+
+    /* ── Document header ── */
+    .doc-header {
+      padding: 48px 0 40px;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .doc-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #6b6155;
+      margin-bottom: 12px;
+    }
+
+    .doc-title {
+      font-family: Georgia, serif;
+      font-size: 32px;
+      line-height: 1.25;
+      font-weight: normal;
+      margin-bottom: 12px;
+    }
+
+    .doc-meta {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      line-height: 1.6;
+    }
+
+    .doc-meta span + span::before {
+      content: '\00a0\00b7\00a0';
+    }
+
+    /* ── Final output ── */
+    .final-output {
+      padding: 48px 0;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .section-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #1e1a14;
+      margin-bottom: 24px;
+    }
+
+    .output-text p {
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+
+    .output-text p:last-child { margin-bottom: 0; }
+
+    /* ── Trace record ── */
+    .trace-record {
+      padding: 48px 0 80px;
+    }
+
+    .trace-instruction {
+      font-size: 15px;
+      color: #6b6155;
+      margin-bottom: 28px;
+      font-style: italic;
+    }
+
+    /* ── View toggle ── */
+    .view-toggle {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+    }
+
+    .view-toggle-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b6155;
+      background: none;
+      border: 1px solid #ddd5c8;
+      padding: 7px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .view-toggle-btn:hover { color: #1e1a14; border-color: #b5ad9e; }
+
+    .view-toggle-btn.active {
+      background: #1e1a14;
+      color: #f5f0e8;
+      border-color: #1e1a14;
+    }
+
+    /* ── View containers ── */
+    .view-container { display: none; }
+    .view-container.active { display: block; }
+
+    /* ── Session view ── */
+    .session-card {
+      background: #fefcf8;
+      border: 1px solid #ddd5c8;
+      border-radius: 8px;
+      padding: 8px 32px;
+    }
+
+    .session-message {
+      padding: 20px 0;
+    }
+
+    .session-message + .session-message {
+      border-top: 1px solid #ece7de;
+    }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .message-number {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      font-weight: bold;
+      color: #b5ad9e;
+    }
+
+    .message-role {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .role-prompt { color: rgba(245, 158, 11, 0.85); }
+    .role-reaction { color: #ef4444; }
+    .role-human { color: #16a34a; }
+
+    .message-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      color: #4a3f32;
+      line-height: 1.6;
+    }
+
+    /* ── Unit view (from the-apology) ── */
+    .trace-unit {
+      cursor: pointer;
+      padding: 10px 12px;
+      margin: 0 -12px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+
+    .trace-unit:hover { background: rgba(0, 0, 0, 0.03); }
+
+    .trace-unit.type-prompted.open,
+    .trace-unit.type-prompted:hover { background: rgba(245, 158, 11, 0.08); }
+
+    .trace-unit.type-human.open,
+    .trace-unit.type-human:hover { background: rgba(34, 197, 94, 0.08); }
+
+    .trace-unit p {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.65;
+    }
+
+    .trace-unit + .trace-unit { margin-top: 8px; }
+
+    .unit-number {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: #b5ad9e;
+      margin-bottom: 4px;
+    }
+
+    .annotation {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+      margin: 0 -12px;
+    }
+
+    .annotation.open { max-height: 500px; }
+
+    .annotation-inner {
+      background: #f0ece4;
+      padding: 16px 20px;
+      margin: 6px 0 8px;
+      border-radius: 4px;
+    }
+
+    .annotation-inner.type-prompted { border-top: 3px solid rgba(245, 158, 11, 0.6); }
+    .annotation-inner.type-human { border-top: 3px solid rgba(34, 197, 94, 0.5); }
+
+    .annotation-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .label-prompted { color: rgba(245, 158, 11, 0.85); }
+    .label-human { color: #16a34a; }
+
+    .prompt-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+      margin-top: 8px;
+    }
+
+    .prompt-text::before { content: '\201C'; }
+    .prompt-text::after { content: '\201D'; }
+
+    .reaction-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ef4444;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+
+    .reaction-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+    }
+
+    .reaction-text::before { content: '\201C'; }
+    .reaction-text::after { content: '\201D'; }
+
+    .human-note {
+      font-size: 14px;
+      color: #6b6155;
+      font-style: italic;
+    }
+
+    .rounds-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      color: #b5ad9e;
+      margin-top: 10px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .reveal-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b6155;
+      background: none;
+      border: 1px solid #ddd5c8;
+      padding: 7px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .reveal-btn:hover { color: #1e1a14; border-color: #b5ad9e; }
+
+    /* ── Footer ── */
+    .footer {
+      padding: 32px 0 48px;
+      border-top: 1px solid #ddd5c8;
+      text-align: center;
+    }
+
+    .footer p {
+      font-size: 13px;
+      color: #6b6155;
+    }
+
+    .footer a {
+      color: #6b6155;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .footer a:hover { color: #1e1a14; }
+
+    @media (max-width: 600px) {
+      .doc-title { font-size: 26px; }
+      .final-output, .trace-record { padding: 36px 0; }
+      .trace-record { padding-bottom: 48px; }
+      .session-card { padding: 8px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <a href="index.html" class="back-link">&larr; All examples</a>
+  </div>
+
+  <div class="container">
+    <div class="doc-header">
+      <div class="doc-label">Trace Document</div>
+      <h1 class="doc-title">The Recommendation</h1>
+      <div class="doc-meta">
+        <span>LinkedIn recommendation</span>
+        <span>February 2026</span>
+        <span>ChatGPT</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="final-output">
+      <div class="section-label">Final Output</div>
+      <div class="output-text">
+        <p>I managed Anika for two years on the frontend team at Keystone. She was a senior engineer, but the title undersells what she actually did.</p>
+        <p>Anika was the person who&#x2019;d get a feature request and ask &#x201c;what&#x2019;s the actual problem here?&#x201d; before writing any code. More than once, she came back with something simpler than what was specced that solved it better. That instinct &#x2014; building less, but building the right thing &#x2014; is rare and hard to hire for.</p>
+        <p>The project that sticks with me: she volunteered to lead our design system migration. It touched every component in the app. Nobody else wanted it. She shipped it in six weeks with zero visual regressions. That kind of work is invisible to leadership, but the whole frontend team knew it was her.</p>
+        <p>Halyard is getting someone who will make their product simpler, not just their codebase cleaner.</p>
+        <p>I didn&#x2019;t want her to leave. That&#x2019;s probably the most honest thing I can say.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="trace-record">
+      <div class="section-label">Trace Record</div>
+      <p class="trace-instruction">View the prompts behind each paragraph, or browse the full session chronologically.</p>
+
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="btn-session" onclick="switchView('session')">Session view</button>
+        <button class="view-toggle-btn" id="btn-unit" onclick="switchView('unit')">Unit view</button>
+      </div>
+
+      <!-- Session view -->
+      <div class="view-container active" id="view-session">
+        <div class="session-card" id="session-card"></div>
+      </div>
+
+      <!-- Unit view -->
+      <div class="view-container" id="view-unit">
+        <div class="controls">
+          <button class="reveal-btn" id="reveal-btn" onclick="revealAll()">Reveal all</button>
+        </div>
+        <div id="trace-units"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="container">
+      <p>Rendered in <a href="../">Trace</a> format. Prompts are verbatim.</p>
+    </div>
+  </div>
+
+  <script>
+    var sessionMessages = [
+      { id: 1, message: "write a linkedin recommendation for anika, she was a senior frontend engineer on my team for 2 years at keystone, she just left for halyard, she\u2019s great and i want to write something that actually helps her not just \u2018anika is amazing and i recommend her without hesitation\u2019", role: "prompt" },
+      { id: 2, message: "this is exactly the kind of recommendation i didn\u2019t want. \u2018anika is a talented engineer with a passion for excellence\u2019 \u2014 nobody reads that and learns anything about her. what made her different was: she was the person who would look at a feature request and go \u2018wait, why do users want this, what\u2019s the actual problem\u2019 and then build something simpler than what was specced that solved it better", role: "reaction" },
+      { id: 3, message: "also mention the design system migration. she took that on when nobody else wanted it, it touched every component in the app, and she shipped it in 6 weeks with zero visual regressions. that\u2019s the kind of thing that\u2019s invisible to leadership but the whole frontend team knew it was her", role: "prompt" },
+      { id: 4, message: "don\u2019t end with \u2018any team would be lucky to have her.\u2019 that\u2019s the most generic recommendation closer possible. end with something specific \u2014 like, halyard is getting someone who will make their product simpler, not just their codebase cleaner", role: "reaction" }
+    ];
+
+    var humanAdditions = [
+      "I didn\u2019t want her to leave. That\u2019s probably the most honest thing I can say."
+    ];
+
+    var units = [
+      {
+        id: 1,
+        text: "I managed Anika for two years on the frontend team at Keystone. She was a senior engineer, but the title undersells what she actually did.",
+        prompt: "write a linkedin recommendation for anika, she was a senior frontend engineer on my team for 2 years at keystone, she just left for halyard, she\u2019s great and i want to write something that actually helps her not just \u2018anika is amazing and i recommend her without hesitation\u2019",
+        reaction: "this is exactly the kind of recommendation i didn\u2019t want. \u2018anika is a talented engineer with a passion for excellence\u2019 \u2014 nobody reads that and learns anything about her",
+        type: "prompted",
+        rounds: "1, 2"
+      },
+      {
+        id: 2,
+        text: "Anika was the person who\u2019d get a feature request and ask \u201cwhat\u2019s the actual problem here?\u201d before writing any code. More than once, she came back with something simpler than what was specced that solved it better. That instinct \u2014 building less, but building the right thing \u2014 is rare and hard to hire for.",
+        prompt: "what made her different was: she was the person who would look at a feature request and go \u2018wait, why do users want this, what\u2019s the actual problem\u2019 and then build something simpler than what was specced that solved it better",
+        reaction: null,
+        type: "prompted",
+        rounds: "2"
+      },
+      {
+        id: 3,
+        text: "The project that sticks with me: she volunteered to lead our design system migration. It touched every component in the app. Nobody else wanted it. She shipped it in six weeks with zero visual regressions. That kind of work is invisible to leadership, but the whole frontend team knew it was her.",
+        prompt: "also mention the design system migration. she took that on when nobody else wanted it, it touched every component in the app, and she shipped it in 6 weeks with zero visual regressions. that\u2019s the kind of thing that\u2019s invisible to leadership but the whole frontend team knew it was her",
+        reaction: null,
+        type: "prompted",
+        rounds: "3"
+      },
+      {
+        id: 4,
+        text: "Halyard is getting someone who will make their product simpler, not just their codebase cleaner.",
+        prompt: "don\u2019t end with \u2018any team would be lucky to have her.\u2019 that\u2019s the most generic recommendation closer possible. end with something specific \u2014 like, halyard is getting someone who will make their product simpler, not just their codebase cleaner",
+        reaction: null,
+        type: "prompted",
+        rounds: "4"
+      },
+      {
+        id: 5,
+        text: "I didn\u2019t want her to leave. That\u2019s probably the most honest thing I can say.",
+        prompt: null,
+        reaction: null,
+        type: "human",
+        rounds: null
+      }
+    ];
+
+    /* ── View toggle ── */
+    function switchView(view) {
+      var views = document.querySelectorAll('.view-container');
+      var btns = document.querySelectorAll('.view-toggle-btn');
+      for (var i = 0; i < views.length; i++) { views[i].classList.remove('active'); }
+      for (var i = 0; i < btns.length; i++) { btns[i].classList.remove('active'); }
+      document.getElementById('view-' + view).classList.add('active');
+      document.getElementById('btn-' + view).classList.add('active');
+    }
+
+    /* ── Session view ── */
+    function buildSession() {
+      var container = document.getElementById('session-card');
+      var html = '';
+      for (var i = 0; i < sessionMessages.length; i++) {
+        var m = sessionMessages[i];
+        var roleClass = 'role-' + m.role;
+        html += '<div class="session-message">';
+        html += '<div class="message-header">';
+        html += '<span class="message-number">[' + m.id + ']</span>';
+        html += '<span class="message-role ' + roleClass + '">' + m.role.toUpperCase() + '</span>';
+        html += '</div>';
+        html += '<div class="message-text">' + m.message + '</div>';
+        html += '</div>';
+      }
+      for (var i = 0; i < humanAdditions.length; i++) {
+        html += '<div class="session-message">';
+        html += '<div class="message-header">';
+        html += '<span class="message-number">[' + (sessionMessages.length + i + 1) + ']</span>';
+        html += '<span class="message-role role-human">HUMAN ADDITION</span>';
+        html += '</div>';
+        html += '<div class="message-text">' + humanAdditions[i] + '</div>';
+        html += '</div>';
+      }
+      container.innerHTML = html;
+    }
+
+    /* ── Unit view ── */
+    function buildTrace() {
+      var container = document.getElementById('trace-units');
+      var html = '';
+      for (var i = 0; i < units.length; i++) {
+        var u = units[i];
+        html += '<div class="trace-unit type-' + u.type + '" data-id="' + u.id + '" onclick="toggleUnit(' + u.id + ')">';
+        html += '<div class="unit-number">UNIT ' + u.id + '</div>';
+        html += '<p>' + u.text + '</p>';
+        html += '</div>';
+        html += '<div class="annotation" id="annotation-' + u.id + '">';
+        html += '<div class="annotation-inner type-' + u.type + '">';
+        var labelClass = 'label-' + u.type;
+        html += '<div class="annotation-label ' + labelClass + '">' + u.type.toUpperCase() + '</div>';
+        if (u.type === 'human') {
+          html += '<div class="human-note">Written directly by the author. No AI prompt produced this text.</div>';
+        } else {
+          if (u.prompt) html += '<div class="prompt-text">' + u.prompt + '</div>';
+          if (u.reaction) {
+            html += '<div class="reaction-label">Reaction</div>';
+            html += '<div class="reaction-text">' + u.reaction + '</div>';
+          }
+          if (u.rounds) html += '<div class="rounds-label">Rounds: ' + u.rounds + '</div>';
+        }
+        html += '</div></div>';
+      }
+      container.innerHTML = html;
+    }
+
+    function toggleUnit(id) {
+      document.getElementById('annotation-' + id).classList.toggle('open');
+      document.querySelector('.trace-unit[data-id="' + id + '"]').classList.toggle('open');
+      updateRevealBtn();
+    }
+
+    function revealAll() {
+      var annotations = document.querySelectorAll('#view-unit .annotation');
+      var traceUnits = document.querySelectorAll('#view-unit .trace-unit');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      for (var i = 0; i < annotations.length; i++) {
+        if (allOpen) { annotations[i].classList.remove('open'); traceUnits[i].classList.remove('open'); }
+        else { annotations[i].classList.add('open'); traceUnits[i].classList.add('open'); }
+      }
+      updateRevealBtn();
+    }
+
+    function updateRevealBtn() {
+      var annotations = document.querySelectorAll('#view-unit .annotation');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      document.getElementById('reveal-btn').textContent = allOpen ? 'Collapse all' : 'Reveal all';
+    }
+
+    buildSession();
+    buildTrace();
+  </script>
+</body>
+</html>

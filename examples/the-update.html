@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trace: The Update</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f5f0e8;
+      color: #1e1a14;
+      font-family: Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Back link ── */
+    .back-link {
+      display: inline-block;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      text-decoration: none;
+      padding: 24px 0 0;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: #1e1a14; }
+
+    /* ── Document header ── */
+    .doc-header {
+      padding: 48px 0 40px;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .doc-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #6b6155;
+      margin-bottom: 12px;
+    }
+
+    .doc-title {
+      font-family: Georgia, serif;
+      font-size: 32px;
+      line-height: 1.25;
+      font-weight: normal;
+      margin-bottom: 12px;
+    }
+
+    .doc-meta {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      line-height: 1.6;
+    }
+
+    .doc-meta span + span::before {
+      content: '\00a0\00b7\00a0';
+    }
+
+    /* ── Final output ── */
+    .final-output {
+      padding: 48px 0;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .section-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #1e1a14;
+      margin-bottom: 24px;
+    }
+
+    .output-text p {
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+
+    .output-text p:last-child { margin-bottom: 0; }
+
+    /* ── Trace record ── */
+    .trace-record {
+      padding: 48px 0 80px;
+    }
+
+    .trace-instruction {
+      font-size: 15px;
+      color: #6b6155;
+      margin-bottom: 28px;
+      font-style: italic;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    /* ── View toggle ── */
+    .view-toggle {
+      display: flex;
+      gap: 0;
+      margin-bottom: 24px;
+    }
+
+    .view-toggle-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b6155;
+      background: none;
+      border: 1px solid #ddd5c8;
+      padding: 7px 16px;
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+
+    .view-toggle-btn:first-child { border-radius: 4px 0 0 4px; }
+    .view-toggle-btn:last-child { border-radius: 0 4px 4px 0; border-left: none; }
+
+    .view-toggle-btn:hover { color: #1e1a14; border-color: #b5ad9e; }
+
+    .view-toggle-btn.active {
+      background: #1e1a14;
+      color: #f5f0e8;
+      border-color: #1e1a14;
+    }
+
+    .view-toggle-btn.active + .view-toggle-btn { border-left: 1px solid #ddd5c8; }
+
+    /* ── View containers ── */
+    .view-container { display: none; }
+    .view-container.active { display: block; }
+
+    /* ── Session view ── */
+    .session-card {
+      background: #fefcf8;
+      border: 1px solid #ddd5c8;
+      border-radius: 8px;
+      padding: 8px 32px;
+    }
+
+    .session-message {
+      padding: 20px 0;
+    }
+
+    .session-message + .session-message {
+      border-top: 1px solid #ece7de;
+    }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .message-number {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      font-weight: bold;
+      color: #b5ad9e;
+    }
+
+    .role-tag {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .role-prompt { color: rgba(245, 158, 11, 0.85); }
+    .role-reaction { color: #ef4444; }
+    .role-human { color: #16a34a; }
+
+    .message-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #4a3f32;
+    }
+
+    .human-addition-divider {
+      border-top: 1px solid #ece7de;
+      padding: 20px 0;
+    }
+
+    /* ── Unit view (from the-apology) ── */
+    .trace-unit {
+      cursor: pointer;
+      padding: 10px 12px;
+      margin: 0 -12px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+
+    .trace-unit:hover { background: rgba(0, 0, 0, 0.03); }
+
+    .trace-unit.type-prompted.open,
+    .trace-unit.type-prompted:hover { background: rgba(245, 158, 11, 0.08); }
+
+    .trace-unit.type-human.open,
+    .trace-unit.type-human:hover { background: rgba(34, 197, 94, 0.08); }
+
+    .trace-unit.type-hybrid.open,
+    .trace-unit.type-hybrid:hover { background: rgba(245, 158, 11, 0.08); }
+
+    .trace-unit p {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.65;
+    }
+
+    .trace-unit + .trace-unit { margin-top: 8px; }
+
+    .unit-number {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: #b5ad9e;
+      margin-bottom: 4px;
+    }
+
+    .annotation {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+      margin: 0 -12px;
+    }
+
+    .annotation.open { max-height: 500px; }
+
+    .annotation-inner {
+      background: #f0ece4;
+      padding: 16px 20px;
+      margin: 6px 0 8px;
+      border-radius: 4px;
+    }
+
+    .annotation-inner.type-prompted { border-top: 3px solid rgba(245, 158, 11, 0.6); }
+    .annotation-inner.type-human { border-top: 3px solid rgba(34, 197, 94, 0.5); }
+    .annotation-inner.type-hybrid { border-top: 3px solid rgba(245, 158, 11, 0.6); }
+
+    .annotation-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .label-prompted { color: rgba(245, 158, 11, 0.85); }
+    .label-human { color: #16a34a; }
+    .label-hybrid { color: rgba(245, 158, 11, 0.85); }
+
+    .prompt-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+      margin-top: 8px;
+    }
+
+    .prompt-text::before { content: '\201C'; }
+    .prompt-text::after { content: '\201D'; }
+
+    .reaction-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ef4444;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+
+    .reaction-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+    }
+
+    .reaction-text::before { content: '\201C'; }
+    .reaction-text::after { content: '\201D'; }
+
+    .human-note {
+      font-size: 14px;
+      color: #6b6155;
+      font-style: italic;
+    }
+
+    .reveal-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b6155;
+      background: none;
+      border: 1px solid #ddd5c8;
+      padding: 7px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .reveal-btn:hover { color: #1e1a14; border-color: #b5ad9e; }
+
+    .unit-rounds {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      color: #b5ad9e;
+      margin-top: 8px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      padding: 32px 0 48px;
+      border-top: 1px solid #ddd5c8;
+      text-align: center;
+    }
+
+    .footer p {
+      font-size: 13px;
+      color: #6b6155;
+    }
+
+    .footer a {
+      color: #6b6155;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .footer a:hover { color: #1e1a14; }
+
+    @media (max-width: 600px) {
+      .doc-title { font-size: 26px; }
+      .final-output, .trace-record { padding: 36px 0; }
+      .trace-record { padding-bottom: 48px; }
+      .session-card { padding: 8px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <a href="index.html" class="back-link">&larr; All examples</a>
+  </div>
+
+  <div class="container">
+    <div class="doc-header">
+      <div class="doc-label">Trace Document</div>
+      <h1 class="doc-title">The Update</h1>
+      <div class="doc-meta">
+        <span>Quarterly investor email</span>
+        <span>January 2026</span>
+        <span>Claude</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="final-output">
+      <div class="section-label">Final Output</div>
+      <div class="output-text">
+        <p>Hi everyone &mdash;</p>
+        <p>Here&rsquo;s where Relay stands at the end of Q4.</p>
+        <p>Monthly active users: 1,200. Our projection was 2,000. We missed it, and I want to be straightforward about that. What we&rsquo;re seeing, though, is that the users we do have are more engaged and spending more than we modeled. MRR grew from $11K to $18K &mdash; a 64% quarter-over-quarter increase &mdash; on a smaller user base than planned. Revenue per user is roughly 2x our original assumption.</p>
+        <p>Runway is 16 months at current burn.</p>
+        <p>Next quarter we&rsquo;re doing two things: launching the team plan (our most-requested feature, and the clearest path to expanding revenue per account) and building the Codepost integration (which came out of watching how our heaviest users actually work). We&rsquo;re deliberately narrowing our roadmap. The MAU miss told us something about where our product-market fit actually is, and we&rsquo;d rather go deep there than spread across six initiatives.</p>
+        <p>Team: we hired Sana Okafor (frontend, building the team plan UI) and Marcus Chen (infra, owning the Codepost integration). Both came to us from the user community, which I think says something about how people feel about the product once they&rsquo;re inside it.</p>
+        <p>I know these numbers aren&rsquo;t what we projected. I&rsquo;d rather show you the real picture and a clear plan than dress it up. Happy to get on a call with anyone who wants to dig into the details.</p>
+        <p>&mdash; Jamie</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="trace-record">
+      <div class="section-label">Trace Record</div>
+
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="btn-session" onclick="switchView('session')">Session view</button>
+        <button class="view-toggle-btn" id="btn-unit" onclick="switchView('unit')">Unit view</button>
+      </div>
+
+      <!-- Session view -->
+      <div class="view-container active" id="view-session">
+        <p class="trace-instruction">The conversation that produced the final text, in order.</p>
+        <div id="session-container"></div>
+      </div>
+
+      <!-- Unit view -->
+      <div class="view-container" id="view-unit">
+        <p class="trace-instruction">Click any paragraph to see the prompt that produced it.</p>
+        <div class="controls">
+          <button class="reveal-btn" id="reveal-btn" onclick="revealAll()">Reveal all</button>
+        </div>
+        <div id="trace-units"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="container">
+      <p>Rendered in <a href="../">Trace</a> format. Prompts are verbatim.</p>
+    </div>
+  </div>
+
+  <script>
+    var sessionMessages = [
+      { id: 1, message: "write a quarterly investor update email for our series a investors, we\u2019re a devtools startup called relay, 14 months post-funding, we hit 1200 MAU which is below our projection of 2000, revenue is 18k MRR up from 11k last quarter, runway is 16 months, we just hired two engineers", role: "prompt" },
+      { id: 2, message: "this is way too optimistic. you said \u2018strong momentum\u2019 and \u2018exceeded expectations in key areas\u2019 \u2014 we missed our MAU target by 40%. don\u2019t lie to our investors, they can do math", role: "reaction" },
+      { id: 3, message: "ok better on the honesty but now it\u2019s too doom-and-gloom, you\u2019re acting like we\u2019re failing. we grew revenue 64% quarter over quarter with two people. the MAU miss is real but the revenue per user is way above plan. frame it that way \u2014 fewer users than expected but the ones we have are paying more and retaining better", role: "reaction" },
+      { id: 4, message: "for the roadmap section don\u2019t list 6 things. we\u2019re doing two things next quarter: launching the team plan and building the codepost integration. that\u2019s it. say we\u2019re deliberately narrowing focus because of what we learned about our users this quarter", role: "prompt" },
+      { id: 5, message: "cut the paragraph about \u2018building a world-class team.\u2019 we hired two people. just say their names \u2014 sana and marcus \u2014 what they\u2019re working on, and that they both came from our user community which says something about the product", role: "reaction" }
+    ];
+
+    var humanAdditions = [
+      "I know these numbers aren\u2019t what we projected. I\u2019d rather show you the real picture and a clear plan than dress it up. Happy to get on a call with anyone who wants to dig into the details."
+    ];
+
+    var units = [
+      {
+        id: 1,
+        text: "Hi everyone \u2014 Here\u2019s where Relay stands at the end of Q4. Monthly active users: 1,200. Our projection was 2,000. We missed it, and I want to be straightforward about that. What we\u2019re seeing, though, is that the users we do have are more engaged and spending more than we modeled. MRR grew from $11K to $18K \u2014 a 64% quarter-over-quarter increase \u2014 on a smaller user base than planned. Revenue per user is roughly 2x our original assumption.",
+        prompt: "write a quarterly investor update email for our series a investors, we\u2019re a devtools startup called relay, 14 months post-funding, we hit 1200 MAU which is below our projection of 2000, revenue is 18k MRR up from 11k last quarter, runway is 16 months, we just hired two engineers",
+        reaction: "this is way too optimistic. you said \u2018strong momentum\u2019 and \u2018exceeded expectations in key areas\u2019 \u2014 we missed our MAU target by 40%. don\u2019t lie to our investors, they can do math",
+        type: "prompted",
+        rounds: "1, 2, 3"
+      },
+      {
+        id: 2,
+        text: "Runway is 16 months at current burn.",
+        prompt: "write a quarterly investor update email for our series a investors, we\u2019re a devtools startup called relay, 14 months post-funding, we hit 1200 MAU which is below our projection of 2000, revenue is 18k MRR up from 11k last quarter, runway is 16 months, we just hired two engineers",
+        reaction: null,
+        type: "prompted",
+        rounds: "1"
+      },
+      {
+        id: 3,
+        text: "Next quarter we\u2019re doing two things: launching the team plan (our most-requested feature, and the clearest path to expanding revenue per account) and building the Codepost integration (which came out of watching how our heaviest users actually work). We\u2019re deliberately narrowing our roadmap. The MAU miss told us something about where our product-market fit actually is, and we\u2019d rather go deep there than spread across six initiatives.",
+        prompt: "for the roadmap section don\u2019t list 6 things. we\u2019re doing two things next quarter: launching the team plan and building the codepost integration. that\u2019s it. say we\u2019re deliberately narrowing focus because of what we learned about our users this quarter",
+        reaction: null,
+        type: "prompted",
+        rounds: "4"
+      },
+      {
+        id: 4,
+        text: "Team: we hired Sana Okafor (frontend, building the team plan UI) and Marcus Chen (infra, owning the Codepost integration). Both came to us from the user community, which I think says something about how people feel about the product once they\u2019re inside it.",
+        prompt: "cut the paragraph about \u2018building a world-class team.\u2019 we hired two people. just say their names \u2014 sana and marcus \u2014 what they\u2019re working on, and that they both came from our user community which says something about the product",
+        reaction: null,
+        type: "prompted",
+        rounds: "5"
+      },
+      {
+        id: 5,
+        text: "I know these numbers aren\u2019t what we projected. I\u2019d rather show you the real picture and a clear plan than dress it up. Happy to get on a call with anyone who wants to dig into the details. \u2014 Jamie",
+        prompt: null,
+        reaction: null,
+        type: "human",
+        rounds: null
+      }
+    ];
+
+    /* ── View toggle ── */
+    function switchView(view) {
+      document.getElementById('view-session').classList.remove('active');
+      document.getElementById('view-unit').classList.remove('active');
+      document.getElementById('btn-session').classList.remove('active');
+      document.getElementById('btn-unit').classList.remove('active');
+
+      document.getElementById('view-' + view).classList.add('active');
+      document.getElementById('btn-' + view).classList.add('active');
+    }
+
+    /* ── Session view ── */
+    function buildSession() {
+      var container = document.getElementById('session-container');
+      var html = '<div class="session-card">';
+      for (var i = 0; i < sessionMessages.length; i++) {
+        var m = sessionMessages[i];
+        html += '<div class="session-message">';
+        html += '<div class="message-header">';
+        html += '<span class="message-number">[' + m.id + ']</span>';
+        html += '<span class="role-tag role-' + m.role + '">' + m.role.toUpperCase() + '</span>';
+        html += '</div>';
+        html += '<div class="message-text">' + m.message + '</div>';
+        html += '</div>';
+      }
+      for (var j = 0; j < humanAdditions.length; j++) {
+        html += '<div class="human-addition-divider">';
+        html += '<div class="message-header">';
+        html += '<span class="role-tag role-human">HUMAN ADDITION</span>';
+        html += '</div>';
+        html += '<div class="message-text">' + humanAdditions[j] + '</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    /* ── Unit view ── */
+    function buildTrace() {
+      var container = document.getElementById('trace-units');
+      var html = '';
+      for (var i = 0; i < units.length; i++) {
+        var u = units[i];
+        html += '<div class="trace-unit type-' + u.type + '" data-id="' + u.id + '" onclick="toggleUnit(' + u.id + ')">';
+        html += '<div class="unit-number">UNIT ' + u.id + '</div>';
+        html += '<p>' + u.text + '</p>';
+        html += '</div>';
+        html += '<div class="annotation" id="annotation-' + u.id + '">';
+        html += '<div class="annotation-inner type-' + u.type + '">';
+        var labelClass = 'label-' + u.type;
+        html += '<div class="annotation-label ' + labelClass + '">' + u.type.toUpperCase() + '</div>';
+        if (u.type === 'human') {
+          html += '<div class="human-note">Written directly by the author. No AI prompt produced this text.</div>';
+        } else {
+          if (u.prompt) html += '<div class="prompt-text">' + u.prompt + '</div>';
+          if (u.reaction) {
+            html += '<div class="reaction-label">Reaction</div>';
+            html += '<div class="reaction-text">' + u.reaction + '</div>';
+          }
+          if (u.rounds) {
+            html += '<div class="unit-rounds">Rounds: ' + u.rounds + '</div>';
+          }
+        }
+        html += '</div></div>';
+      }
+      container.innerHTML = html;
+    }
+
+    function toggleUnit(id) {
+      document.getElementById('annotation-' + id).classList.toggle('open');
+      document.querySelector('.trace-unit[data-id="' + id + '"]').classList.toggle('open');
+      updateRevealBtn();
+    }
+
+    function revealAll() {
+      var annotations = document.querySelectorAll('.annotation');
+      var traceUnits = document.querySelectorAll('.trace-unit');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      for (var i = 0; i < annotations.length; i++) {
+        if (allOpen) { annotations[i].classList.remove('open'); traceUnits[i].classList.remove('open'); }
+        else { annotations[i].classList.add('open'); traceUnits[i].classList.add('open'); }
+      }
+      updateRevealBtn();
+    }
+
+    function updateRevealBtn() {
+      var annotations = document.querySelectorAll('.annotation');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      document.getElementById('reveal-btn').textContent = allOpen ? 'Collapse all' : 'Reveal all';
+    }
+
+    buildSession();
+    buildTrace();
+  </script>
+</body>
+</html>

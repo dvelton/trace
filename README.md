@@ -8,14 +8,21 @@ This repository contains the Trace format specification website and a set of int
 
 Paste the closing prompt at the end of any AI session (ChatGPT, Claude, Gemini, Copilot, Perplexity). The AI reconstructs a Trace document from the conversation history, reproducing your prompts word for word alongside the text they generated.
 
+A Trace has two views:
+
+- **Session record** — your messages in chronological order, showing the arc of the writing process
+- **Unit record** — the final output annotated paragraph by paragraph, mapping each section to the prompt that shaped it
+
 ## Structure
 
 ```
-index.html              The format spec and closing prompt
-examples/index.html     Example gallery
-examples/the-apology    CEO data breach response
-examples/the-goodbye    Employee farewell email
-examples/the-pitch      Nonprofit grant narrative
+index.html                      The format spec and closing prompt
+examples/index.html             Example gallery
+examples/the-apology.html       CEO data breach response (unit view)
+examples/the-goodbye.html       Employee farewell email (unit view)
+examples/the-pitch.html         Nonprofit grant narrative (unit view)
+examples/the-update.html        Startup investor email (session + unit)
+examples/the-recommendation.html  LinkedIn recommendation (session + unit)
 ```
 
 No build step, no dependencies, no backend. Each page is self-contained HTML.
