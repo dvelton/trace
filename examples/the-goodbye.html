@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trace: The Goodbye</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f5f0e8;
+      color: #1e1a14;
+      font-family: Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+
+    .back-link {
+      display: inline-block;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      text-decoration: none;
+      padding: 24px 0 0;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: #1e1a14; }
+
+    .doc-header {
+      padding: 48px 0 40px;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .doc-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #6b6155;
+      margin-bottom: 12px;
+    }
+
+    .doc-title {
+      font-family: Georgia, serif;
+      font-size: 32px;
+      line-height: 1.25;
+      font-weight: normal;
+      margin-bottom: 12px;
+    }
+
+    .doc-meta {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      line-height: 1.6;
+    }
+
+    .doc-meta span + span::before { content: '\00a0\00b7\00a0'; }
+
+    .final-output {
+      padding: 48px 0;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .section-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #1e1a14;
+      margin-bottom: 24px;
+    }
+
+    .output-text p {
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+
+    .output-text p:last-child { margin-bottom: 0; }
+
+    .trace-record { padding: 48px 0 80px; }
+
+    .trace-instruction {
+      font-size: 15px;
+      color: #6b6155;
+      margin-bottom: 28px;
+      font-style: italic;
+    }
+
+    .trace-unit {
+      cursor: pointer;
+      padding: 10px 12px;
+      margin: 0 -12px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+
+    .trace-unit:hover { background: rgba(0, 0, 0, 0.03); }
+    .trace-unit.type-prompted.open, .trace-unit.type-prompted:hover { background: rgba(245, 158, 11, 0.08); }
+    .trace-unit.type-human.open, .trace-unit.type-human:hover { background: rgba(34, 197, 94, 0.08); }
+
+    .trace-unit p { margin: 0; font-size: 17px; line-height: 1.65; }
+    .trace-unit + .trace-unit { margin-top: 8px; }
+
+    .unit-number {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: #b5ad9e;
+      margin-bottom: 4px;
+    }
+
+    .annotation {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+      margin: 0 -12px;
+    }
+
+    .annotation.open { max-height: 500px; }
+
+    .annotation-inner {
+      background: #f0ece4;
+      padding: 16px 20px;
+      margin: 6px 0 8px;
+      border-radius: 4px;
+    }
+
+    .annotation-inner.type-prompted { border-top: 3px solid rgba(245, 158, 11, 0.6); }
+    .annotation-inner.type-human { border-top: 3px solid rgba(34, 197, 94, 0.5); }
+
+    .annotation-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .label-prompted { color: rgba(245, 158, 11, 0.85); }
+    .label-human { color: #16a34a; }
+
+    .prompt-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+      margin-top: 8px;
+    }
+
+    .prompt-text::before { content: '\201C'; }
+    .prompt-text::after { content: '\201D'; }
+
+    .reaction-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ef4444;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+
+    .reaction-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+    }
+
+    .reaction-text::before { content: '\201C'; }
+    .reaction-text::after { content: '\201D'; }
+
+    .human-note { font-size: 14px; color: #6b6155; font-style: italic; }
+
+    .controls { display: flex; gap: 12px; margin-bottom: 24px; }
+
+    .reveal-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b6155;
+      background: none;
+      border: 1px solid #ddd5c8;
+      padding: 7px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .reveal-btn:hover { color: #1e1a14; border-color: #b5ad9e; }
+
+    .footer {
+      padding: 32px 0 48px;
+      border-top: 1px solid #ddd5c8;
+      text-align: center;
+    }
+
+    .footer p { font-size: 13px; color: #6b6155; }
+    .footer a { color: #6b6155; text-decoration: underline; text-underline-offset: 2px; }
+    .footer a:hover { color: #1e1a14; }
+
+    @media (max-width: 600px) {
+      .doc-title { font-size: 26px; }
+      .final-output, .trace-record { padding: 36px 0; }
+      .trace-record { padding-bottom: 48px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <a href="index.html" class="back-link">&larr; All examples</a>
+  </div>
+
+  <div class="container">
+    <div class="doc-header">
+      <div class="doc-label">Trace Document</div>
+      <h1 class="doc-title">The Goodbye</h1>
+      <div class="doc-meta">
+        <span>Farewell email to the company</span>
+        <span>March 2026</span>
+        <span>ChatGPT</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="final-output">
+      <div class="section-label">Final Output</div>
+      <div class="output-text">
+        <p>Hi everyone — Friday is my last day at Conduit.</p>
+        <p>I've been here three years, which is long enough to remember when the all-hands fit in one room and the deploy process was "Dan SSHs into production." I'm proud of what the platform team built this year. The migration to event-driven architecture was the hardest project I've worked on, and we shipped it without a single customer-facing outage. That was Priya, James, and me in a room for four months, and I'll remember it for a long time.</p>
+        <p>I don't have my next thing figured out yet. I'm going to take a few weeks and think. If you want to stay in touch, I'm at maya.l.wong@gmail.com — I actually read that inbox.</p>
+        <p>Thank you for a genuinely good three years.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="trace-record">
+      <div class="section-label">Trace Record</div>
+      <p class="trace-instruction">Click any paragraph to see the prompt that produced it.</p>
+      <div class="controls">
+        <button class="reveal-btn" id="reveal-btn" onclick="revealAll()">Reveal all</button>
+      </div>
+      <div id="trace-units"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="container">
+      <p>Rendered in <a href="../">Trace</a> format. Prompts are verbatim.</p>
+    </div>
+  </div>
+
+  <script>
+    var units = [
+      {
+        id: 1,
+        text: "Hi everyone \u2014 Friday is my last day at Conduit.",
+        prompt: "write a farewell email for my last day friday, i've been at conduit for 3 years, i'm on the platform team",
+        reaction: "this is so generic it could be from anyone at any company. 'it's been an incredible journey and i've grown so much as a person' \u2014 no. i want it to sound like me",
+        type: "prompted"
+      },
+      {
+        id: 2,
+        text: "I\u2019ve been here three years, which is long enough to remember when the all-hands fit in one room and the deploy process was \u201cDan SSHs into production.\u201d I\u2019m proud of what the platform team built this year. The migration to event-driven architecture was the hardest project I\u2019ve worked on, and we shipped it without a single customer-facing outage. That was Priya, James, and me in a room for four months, and I\u2019ll remember it for a long time.",
+        prompt: "ok start over. mention specific things: the company used to be small enough for all-hands in one room, dan used to ssh into production to deploy, the event-driven migration was the hardest thing i've worked on and we did it with no customer outages, that was me priya and james for four months",
+        reaction: "better but take out the paragraph about 'leadership' and 'mentorship.' nobody mentored me, i taught myself everything, and i don't want to perform gratitude i don't feel",
+        type: "prompted"
+      },
+      {
+        id: 3,
+        text: "I don\u2019t have my next thing figured out yet. I\u2019m going to take a few weeks and think. If you want to stay in touch, I\u2019m at maya.l.wong@gmail.com \u2014 I actually read that inbox.",
+        prompt: "end with something honest. i don't have a next job. i'm going to take a few weeks. give my gmail maya.l.wong@gmail.com if people want to keep in touch, and say i actually read it unlike the work email",
+        reaction: null,
+        type: "prompted"
+      },
+      {
+        id: 4,
+        text: "Thank you for a genuinely good three years.",
+        prompt: null,
+        reaction: null,
+        type: "human"
+      }
+    ];
+
+    function buildTrace() {
+      var container = document.getElementById('trace-units');
+      var html = '';
+      for (var i = 0; i < units.length; i++) {
+        var u = units[i];
+        html += '<div class="trace-unit type-' + u.type + '" data-id="' + u.id + '" onclick="toggleUnit(' + u.id + ')">';
+        html += '<div class="unit-number">UNIT ' + u.id + '</div>';
+        html += '<p>' + u.text + '</p>';
+        html += '</div>';
+        html += '<div class="annotation" id="annotation-' + u.id + '">';
+        html += '<div class="annotation-inner type-' + u.type + '">';
+        var labelClass = 'label-' + u.type;
+        html += '<div class="annotation-label ' + labelClass + '">' + u.type.toUpperCase() + '</div>';
+        if (u.type === 'human') {
+          html += '<div class="human-note">Written directly by the author. No AI prompt produced this text.</div>';
+        } else {
+          if (u.prompt) html += '<div class="prompt-text">' + u.prompt + '</div>';
+          if (u.reaction) {
+            html += '<div class="reaction-label">Reaction</div>';
+            html += '<div class="reaction-text">' + u.reaction + '</div>';
+          }
+        }
+        html += '</div></div>';
+      }
+      container.innerHTML = html;
+    }
+
+    function toggleUnit(id) {
+      document.getElementById('annotation-' + id).classList.toggle('open');
+      document.querySelector('.trace-unit[data-id="' + id + '"]').classList.toggle('open');
+      updateRevealBtn();
+    }
+
+    function revealAll() {
+      var annotations = document.querySelectorAll('.annotation');
+      var traceUnits = document.querySelectorAll('.trace-unit');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      for (var i = 0; i < annotations.length; i++) {
+        if (allOpen) { annotations[i].classList.remove('open'); traceUnits[i].classList.remove('open'); }
+        else { annotations[i].classList.add('open'); traceUnits[i].classList.add('open'); }
+      }
+      updateRevealBtn();
+    }
+
+    function updateRevealBtn() {
+      var annotations = document.querySelectorAll('.annotation');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      document.getElementById('reveal-btn').textContent = allOpen ? 'Collapse all' : 'Reveal all';
+    }
+
+    buildTrace();
+  </script>
+</body>
+</html>

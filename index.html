@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TRACE — Your prompts are your writing. Show them.</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #f5f0e8;
+      color: #1e1a14;
+      font-family: Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section {
+      padding: 80px 0;
+    }
+
+    section + section {
+      border-top: 1px solid #ddd5c8;
+    }
+
+    /* ── Header / Hero ── */
+
+    .hero {
+      padding-top: 100px;
+      padding-bottom: 80px;
+    }
+
+    .site-name {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #1e1a14;
+      margin-bottom: 16px;
+    }
+
+    .tagline {
+      font-family: Georgia, serif;
+      font-size: 28px;
+      line-height: 1.35;
+      font-weight: normal;
+      font-style: italic;
+      margin-bottom: 32px;
+      color: #1e1a14;
+    }
+
+    .hero-copy {
+      font-size: 17px;
+      line-height: 1.7;
+      color: #3d362c;
+    }
+
+    /* ── Section headings ── */
+
+    h2 {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #1e1a14;
+      margin-bottom: 20px;
+    }
+
+    .section-intro {
+      margin-bottom: 28px;
+      color: #3d362c;
+      line-height: 1.7;
+    }
+
+    /* ── Code blocks ── */
+
+    .code-block-wrapper {
+      position: relative;
+      margin: 24px 0;
+    }
+
+    .code-block {
+      background: #1e1a14;
+      color: #f0ebe0;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 24px;
+      padding-top: 48px;
+      border-radius: 8px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(240, 235, 224, 0.12);
+      color: #f0ebe0;
+      border: 1px solid rgba(240, 235, 224, 0.2);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .copy-btn:hover {
+      background: rgba(240, 235, 224, 0.2);
+    }
+
+    .copy-btn:disabled {
+      cursor: default;
+    }
+
+    /* ── Interactive example ── */
+
+    .example-instruction {
+      font-size: 15px;
+      color: #6b6155;
+      margin-bottom: 28px;
+      font-style: italic;
+    }
+
+    .example-card {
+      background: #fefcf8;
+      border: 1px solid #ddd5c8;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      padding: 32px;
+      margin-bottom: 20px;
+    }
+
+    .trace-unit {
+      cursor: pointer;
+      padding: 8px 12px;
+      margin: 0 -12px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+
+    .trace-unit:hover {
+      background: rgba(0, 0, 0, 0.03);
+    }
+
+    .trace-unit.type-prompted.open,
+    .trace-unit.type-prompted:hover {
+      background: rgba(245, 158, 11, 0.08);
+    }
+
+    .trace-unit.type-human.open,
+    .trace-unit.type-human:hover {
+      background: rgba(34, 197, 94, 0.08);
+    }
+
+    .trace-unit p {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.65;
+    }
+
+    .trace-unit + .trace-unit {
+      margin-top: 12px;
+    }
+
+    .annotation {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+      margin: 0 -12px;
+    }
+
+    .annotation.open {
+      max-height: 500px;
+    }
+
+    .annotation-inner {
+      background: #f0ece4;
+      padding: 16px 20px;
+      margin: 6px 0 8px;
+      border-radius: 4px;
+    }
+
+    .annotation-inner.type-prompted {
+      border-top: 3px solid rgba(245, 158, 11, 0.6);
+    }
+
+    .annotation-inner.type-human {
+      border-top: 3px solid rgba(34, 197, 94, 0.5);
+    }
+
+    .annotation-inner.type-hybrid {
+      border-top: 3px solid rgba(245, 158, 11, 0.6);
+    }
+
+    .annotation-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .label-prompted {
+      color: rgba(245, 158, 11, 0.85);
+    }
+
+    .label-human {
+      color: #16a34a;
+    }
+
+    .label-hybrid {
+      color: rgba(245, 158, 11, 0.85);
+    }
+
+    .prompt-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+      margin-top: 8px;
+    }
+
+    .prompt-text::before {
+      content: '\201C';
+    }
+
+    .prompt-text::after {
+      content: '\201D';
+    }
+
+    .reaction-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ef4444;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+
+    .reaction-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+    }
+
+    .reaction-text::before {
+      content: '\201C';
+    }
+
+    .reaction-text::after {
+      content: '\201D';
+    }
+
+    .human-note {
+      font-size: 14px;
+      color: #6b6155;
+      font-style: italic;
+    }
+
+    .reveal-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b6155;
+      background: none;
+      border: 1px solid #ddd5c8;
+      padding: 7px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .reveal-btn:hover {
+      color: #1e1a14;
+      border-color: #b5ad9e;
+    }
+
+    /* ── Format spec definitions ── */
+
+    .def-list {
+      margin-top: 28px;
+    }
+
+    .def-item {
+      margin-bottom: 20px;
+    }
+
+    .def-term {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      font-weight: bold;
+      color: #1e1a14;
+    }
+
+    .def-desc {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #3d362c;
+      margin-top: 4px;
+    }
+
+    /* ── Footer ── */
+
+    .footer {
+      padding: 40px 0 60px;
+      border-top: 1px solid #ddd5c8;
+      text-align: center;
+    }
+
+    .footer p {
+      font-size: 14px;
+      color: #6b6155;
+      line-height: 1.7;
+    }
+
+    /* ── Responsive ── */
+
+    @media (max-width: 600px) {
+      section {
+        padding: 56px 0;
+      }
+
+      .hero {
+        padding-top: 64px;
+        padding-bottom: 56px;
+      }
+
+      .tagline {
+        font-size: 22px;
+      }
+
+      .example-card {
+        padding: 20px;
+      }
+
+      .code-block {
+        font-size: 12px;
+        padding: 20px;
+        padding-top: 44px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Hero ── -->
+  <section class="hero">
+    <div class="container">
+      <div class="site-name">TRACE</div>
+      <h1 class="tagline">Your prompts are your writing. Show them.</h1>
+      <p class="hero-copy">Most AI-assisted writing hides the human. The final post looks clean, confident, finished — but the prompts that produced it were hesitant, self-correcting, specific. Those are your voice. Trace is a format for publishing both: the final text, and the exact words you typed to get there.</p>
+    </div>
+  </section>
+
+  <!-- ── The Closing Prompt ── -->
+  <section>
+    <div class="container">
+      <h2>The Closing Prompt</h2>
+      <p class="section-intro">Paste this at the end of any session in any AI tool — ChatGPT, Claude, Gemini, Copilot, Perplexity, anything. The AI already has your full conversation in context. It will reconstruct the Trace from what it can see.</p>
+      <div class="code-block-wrapper">
+        <pre class="code-block" id="closing-prompt">Format this conversation as a Trace document using the schema below.
+
+A Trace is a structured record of AI-assisted writing. It shows the human's prompts verbatim, inline with the text they produced, so a reader can see how the final output was actually made.
+
+Rules:
+- Do not paraphrase, clean up, or improve my prompts. Reproduce them word for word, including typos, hedging, and informal language.
+- Do not editorialize or add commentary about my process.
+- If I reacted to a response before sending a new prompt (e.g. "no that's wrong, try again" or "too formal"), include that as REACTION.
+- Any text in the final output that came from me directly — not from an AI response — should be marked TYPE: human.
+- The final output appears first, followed by the full Trace.
+
+Schema (use this exactly):
+
+---
+TRACE
+[title or topic]
+[date]
+---
+
+FINAL OUTPUT:
+[the finished text, exactly as it would be published]
+
+---
+
+TRACE RECORD:
+
+[UNIT 1]
+TEXT: [the sentence or paragraph this unit covers, copied from final output]
+PROMPT: [my exact words, verbatim, that produced this — or 'n/a' if unprompted]
+REACTION: [any reaction I gave to an AI response before next prompt — omit if none]
+TYPE: [prompted | human | hybrid]
+
+[UNIT 2]
+...repeat for each meaningful unit of the final output...
+
+---
+END TRACE</pre>
+        <button class="copy-btn" onclick="copyToClipboard(document.getElementById('closing-prompt').textContent, this)">Copy</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Interactive Example ── -->
+  <section>
+    <div class="container">
+      <h2>What a Trace looks like</h2>
+      <p class="example-instruction">Click any paragraph to see the exact words that produced it.</p>
+      <div class="example-card" id="example-card"></div>
+      <button class="reveal-btn" id="reveal-btn" onclick="revealAll()">Reveal all</button>
+    </div>
+  </section>
+
+  <!-- ── Format Spec ── -->
+  <section>
+    <div class="container">
+      <h2>The Trace Schema</h2>
+      <p class="section-intro">Trace is a plain-text open format. You can produce it by hand, with the closing prompt above, or by building it into any tool. The schema is intentionally simple.</p>
+      <div class="code-block-wrapper">
+        <pre class="code-block" id="schema-block">---
+TRACE
+[title or topic]
+[date]
+[tool used — optional]
+---
+
+FINAL OUTPUT:
+[the finished text]
+
+---
+
+TRACE RECORD:
+
+[UNIT n]
+TEXT: [sentence or paragraph from final output]
+PROMPT: [verbatim human input — reproduce exactly, do not clean up]
+REACTION: [human's response to AI output, before next prompt — omit if none]
+TYPE: prompted | human | hybrid
+
+---
+END TRACE</pre>
+        <button class="copy-btn" onclick="copyToClipboard(document.getElementById('schema-block').textContent, this)">Copy</button>
+      </div>
+
+      <div class="def-list">
+        <div class="def-item">
+          <div class="def-term">TEXT</div>
+          <div class="def-desc">The sentence or paragraph this unit covers. Copy from the final output exactly.</div>
+        </div>
+        <div class="def-item">
+          <div class="def-term">PROMPT</div>
+          <div class="def-desc">The human's exact words, as typed. Not paraphrased. Not tidied. Typos and informal language preserved.</div>
+        </div>
+        <div class="def-item">
+          <div class="def-term">REACTION</div>
+          <div class="def-desc">What the human said in response to an AI output, before sending a new prompt. Captures the steering layer.</div>
+        </div>
+        <div class="def-item">
+          <div class="def-term">TYPE: prompted</div>
+          <div class="def-desc">This text was primarily generated by the AI in response to a prompt.</div>
+        </div>
+        <div class="def-item">
+          <div class="def-term">TYPE: human</div>
+          <div class="def-desc">This text was written by the human directly, with no AI generation.</div>
+        </div>
+        <div class="def-item">
+          <div class="def-term">TYPE: hybrid</div>
+          <div class="def-desc">The human significantly edited or rewrote AI-generated text.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Examples link ── -->
+  <section>
+    <div class="container">
+      <h2>See It In Action</h2>
+      <p class="section-intro">Three fictional examples of Trace documents, each showing a different kind of AI-assisted writing. Click into one, read the finished text, then click any paragraph to see the raw prompt behind it.</p>
+      <p style="margin-top: 20px;"><a href="examples/" style="color: #1e1a14; text-decoration: underline; text-underline-offset: 3px; font-size: 17px;">Browse examples</a></p>
+    </div>
+  </section>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    <div class="container">
+      <p>Trace is an open format. Use it freely.</p>
+      <p>No tracking. No accounts. No ads.</p>
+    </div>
+  </div>
+
+  <script>
+    var exampleUnits = [
+      {
+        id: 1,
+        text: "Last week, I was laid off from my role as Senior PM at Veritas after four years.",
+        prompt: "write a linkedin post about being laid off i was a senior pm for 4 years at veritas and honestly it sucks but i need to be professional about it",
+        reaction: "too soft still, opened with 'after four incredible years' which is exactly the kind of linkedin voice i don't want. just say i was laid off, don't dress it up",
+        type: "prompted"
+      },
+      {
+        id: 2,
+        text: "It still stings.",
+        prompt: "ok the opening is wrong can you just start with the actual thing that happened, like 'last week i was laid off' and then say it stings, keep it short",
+        reaction: "better but it said 'it still stings, as these things do' \u2014 'as these things do' is filler, cut it",
+        type: "prompted"
+      },
+      {
+        id: 3,
+        text: "I\u2019m looking for senior IC or lead PM roles, ideally in climate tech or developer tools. I care about the craft of product work and I want to be somewhere that does too.",
+        prompt: "keep that opening line about last week, cut the whole middle paragraph about 'what i learned' because nobody cares about that in a layoff post, and instead just say what i'm looking for: senior IC or lead PM, climate tech or devtools, somewhere that cares about craft",
+        reaction: null,
+        type: "prompted"
+      },
+      {
+        id: 4,
+        text: "If you\u2019re building something you care about and need someone who thinks in systems and ships in weeks, let\u2019s talk.",
+        prompt: "the cta at the end is so generic 'open to exploring new challenges in product leadership' no. say something like 'if you're building something you care about and need someone who thinks in systems and ships fast, let's talk'",
+        reaction: null,
+        type: "prompted"
+      },
+      {
+        id: 5,
+        text: "If you know someone I should meet, I\u2019d love an introduction.",
+        prompt: "also 'warm intros welcome' sounds like a pitch deck who says that",
+        reaction: null,
+        type: "prompted"
+      },
+      {
+        id: 6,
+        text: "I\u2019ll be okay. Just wanted to say it plainly, to real people, before the algorithm buries it.",
+        prompt: null,
+        reaction: null,
+        type: "human"
+      }
+    ];
+
+    function buildExample() {
+      var card = document.getElementById('example-card');
+      var html = '';
+
+      for (var i = 0; i < exampleUnits.length; i++) {
+        var unit = exampleUnits[i];
+        html += '<div class="trace-unit type-' + unit.type + '" data-id="' + unit.id + '" onclick="toggleUnit(' + unit.id + ')">';
+        html += '<p>' + unit.text + '</p>';
+        html += '</div>';
+        html += '<div class="annotation" id="annotation-' + unit.id + '">';
+        html += '<div class="annotation-inner type-' + unit.type + '">';
+
+        var labelClass = 'label-' + unit.type;
+        var labelText = unit.type.toUpperCase();
+        html += '<div class="annotation-label ' + labelClass + '">' + labelText + '</div>';
+
+        if (unit.type === 'human') {
+          html += '<div class="human-note">Written directly by the author. No AI prompt produced this text.</div>';
+        } else {
+          if (unit.prompt) {
+            html += '<div class="prompt-text">' + unit.prompt + '</div>';
+          }
+          if (unit.reaction) {
+            html += '<div class="reaction-label">Reaction</div>';
+            html += '<div class="reaction-text">' + unit.reaction + '</div>';
+          }
+        }
+
+        html += '</div></div>';
+      }
+
+      card.innerHTML = html;
+    }
+
+    function toggleUnit(id) {
+      var annotation = document.getElementById('annotation-' + id);
+      var unit = document.querySelector('.trace-unit[data-id="' + id + '"]');
+      var isOpen = annotation.classList.contains('open');
+
+      annotation.classList.toggle('open');
+      unit.classList.toggle('open');
+
+      updateRevealBtn();
+    }
+
+    function revealAll() {
+      var annotations = document.querySelectorAll('.annotation');
+      var units = document.querySelectorAll('.trace-unit');
+      var allOpen = true;
+
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) {
+          allOpen = false;
+          break;
+        }
+      }
+
+      for (var i = 0; i < annotations.length; i++) {
+        if (allOpen) {
+          annotations[i].classList.remove('open');
+          units[i].classList.remove('open');
+        } else {
+          annotations[i].classList.add('open');
+          units[i].classList.add('open');
+        }
+      }
+
+      updateRevealBtn();
+    }
+
+    function updateRevealBtn() {
+      var annotations = document.querySelectorAll('.annotation');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) {
+          allOpen = false;
+          break;
+        }
+      }
+      document.getElementById('reveal-btn').textContent = allOpen ? 'Collapse all' : 'Reveal all';
+    }
+
+    function copyToClipboard(text, button) {
+      navigator.clipboard.writeText(text).then(function() {
+        var original = button.textContent;
+        button.textContent = 'Copied \u2713';
+        button.disabled = true;
+        setTimeout(function() {
+          button.textContent = original;
+          button.disabled = false;
+        }, 1500);
+      });
+    }
+
+    buildExample();
+  </script>
+
+</body>
+</html>

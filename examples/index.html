@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trace: Examples</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f5f0e8;
+      color: #1e1a14;
+      font-family: Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+
+    .back-link {
+      display: inline-block;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      text-decoration: none;
+      padding: 24px 0 0;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: #1e1a14; }
+
+    .page-header {
+      padding: 48px 0 40px;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .site-name {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #1e1a14;
+      margin-bottom: 16px;
+    }
+
+    .page-title {
+      font-family: Georgia, serif;
+      font-size: 28px;
+      line-height: 1.35;
+      font-weight: normal;
+      margin-bottom: 16px;
+    }
+
+    .page-intro {
+      color: #3d362c;
+      line-height: 1.7;
+    }
+
+    .examples-list {
+      padding: 48px 0 80px;
+    }
+
+    .example-card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      background: #fefcf8;
+      border: 1px solid #ddd5c8;
+      border-radius: 8px;
+      padding: 28px 32px;
+      margin-bottom: 20px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .example-card:hover {
+      border-color: #b5ad9e;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .card-title {
+      font-family: Georgia, serif;
+      font-size: 20px;
+      margin-bottom: 6px;
+    }
+
+    .card-meta {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      margin-bottom: 12px;
+    }
+
+    .card-meta span + span::before { content: '\00a0\00b7\00a0'; }
+
+    .card-desc {
+      font-size: 16px;
+      color: #3d362c;
+      line-height: 1.6;
+    }
+
+    .footer {
+      padding: 32px 0 48px;
+      border-top: 1px solid #ddd5c8;
+      text-align: center;
+    }
+
+    .footer p { font-size: 13px; color: #6b6155; }
+    .footer a { color: #6b6155; text-decoration: underline; text-underline-offset: 2px; }
+    .footer a:hover { color: #1e1a14; }
+
+    @media (max-width: 600px) {
+      .page-title { font-size: 22px; }
+      .example-card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <a href="../" class="back-link">&larr; Trace</a>
+  </div>
+
+  <div class="container">
+    <div class="page-header">
+      <div class="site-name">TRACE</div>
+      <h1 class="page-title">Examples</h1>
+      <p class="page-intro">Each example below is a piece of AI-assisted writing rendered in Trace format. Click into one to read the final text, then click any paragraph to see the verbatim prompt that produced it.</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="examples-list">
+      <a href="the-apology.html" class="example-card">
+        <div class="card-title">The Apology</div>
+        <div class="card-meta">
+          <span>Public blog post after a data breach</span>
+          <span>Claude</span>
+        </div>
+        <p class="card-desc">A startup CEO writes a public response to a security incident. The prompts reveal someone fighting the AI's instinct to produce corporate non-apologies — pushing past "we take security seriously" toward something a reader might actually believe.</p>
+      </a>
+
+      <a href="the-goodbye.html" class="example-card">
+        <div class="card-title">The Goodbye</div>
+        <div class="card-meta">
+          <span>Farewell email to the company</span>
+          <span>ChatGPT</span>
+        </div>
+        <p class="card-desc">An engineer writes a farewell email on her last day. The prompts show someone rejecting the AI's generic "incredible journey" language, insisting on specific memories and refusing to perform gratitude she doesn't feel.</p>
+      </a>
+
+      <a href="the-pitch.html" class="example-card">
+        <div class="card-title">The Pitch</div>
+        <div class="card-meta">
+          <span>Grant application narrative</span>
+          <span>Gemini</span>
+        </div>
+        <p class="card-desc">A nonprofit founder writes a grant narrative. The prompts show someone stripping away every piece of grant-speak the AI reaches for — "empower underserved youth," "evidence-based methodology," "sustainable funding model" — until what's left is just the truth about 42 kids and their homework.</p>
+      </a>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="container">
+      <p>Rendered in <a href="../">Trace</a> format. Prompts are verbatim.</p>
+    </div>
+  </div>
+
+</body>
+</html>

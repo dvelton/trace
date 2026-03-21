@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trace: The Pitch</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f5f0e8;
+      color: #1e1a14;
+      font-family: Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+
+    .back-link {
+      display: inline-block;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      text-decoration: none;
+      padding: 24px 0 0;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: #1e1a14; }
+
+    .doc-header {
+      padding: 48px 0 40px;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .doc-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #6b6155;
+      margin-bottom: 12px;
+    }
+
+    .doc-title {
+      font-family: Georgia, serif;
+      font-size: 32px;
+      line-height: 1.25;
+      font-weight: normal;
+      margin-bottom: 12px;
+    }
+
+    .doc-meta {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      line-height: 1.6;
+    }
+
+    .doc-meta span + span::before { content: '\00a0\00b7\00a0'; }
+
+    .final-output {
+      padding: 48px 0;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .section-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #1e1a14;
+      margin-bottom: 24px;
+    }
+
+    .output-text p {
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+
+    .output-text p:last-child { margin-bottom: 0; }
+
+    .trace-record { padding: 48px 0 80px; }
+
+    .trace-instruction {
+      font-size: 15px;
+      color: #6b6155;
+      margin-bottom: 28px;
+      font-style: italic;
+    }
+
+    .trace-unit {
+      cursor: pointer;
+      padding: 10px 12px;
+      margin: 0 -12px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+
+    .trace-unit:hover { background: rgba(0, 0, 0, 0.03); }
+    .trace-unit.type-prompted.open, .trace-unit.type-prompted:hover { background: rgba(245, 158, 11, 0.08); }
+    .trace-unit.type-human.open, .trace-unit.type-human:hover { background: rgba(34, 197, 94, 0.08); }
+
+    .trace-unit p { margin: 0; font-size: 17px; line-height: 1.65; }
+    .trace-unit + .trace-unit { margin-top: 8px; }
+
+    .unit-number {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: #b5ad9e;
+      margin-bottom: 4px;
+    }
+
+    .annotation {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+      margin: 0 -12px;
+    }
+
+    .annotation.open { max-height: 500px; }
+
+    .annotation-inner {
+      background: #f0ece4;
+      padding: 16px 20px;
+      margin: 6px 0 8px;
+      border-radius: 4px;
+    }
+
+    .annotation-inner.type-prompted { border-top: 3px solid rgba(245, 158, 11, 0.6); }
+    .annotation-inner.type-human { border-top: 3px solid rgba(34, 197, 94, 0.5); }
+
+    .annotation-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .label-prompted { color: rgba(245, 158, 11, 0.85); }
+    .label-human { color: #16a34a; }
+
+    .prompt-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+      margin-top: 8px;
+    }
+
+    .prompt-text::before { content: '\201C'; }
+    .prompt-text::after { content: '\201D'; }
+
+    .reaction-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ef4444;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+
+    .reaction-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+    }
+
+    .reaction-text::before { content: '\201C'; }
+    .reaction-text::after { content: '\201D'; }
+
+    .human-note { font-size: 14px; color: #6b6155; font-style: italic; }
+
+    .controls { display: flex; gap: 12px; margin-bottom: 24px; }
+
+    .reveal-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b6155;
+      background: none;
+      border: 1px solid #ddd5c8;
+      padding: 7px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .reveal-btn:hover { color: #1e1a14; border-color: #b5ad9e; }
+
+    .footer {
+      padding: 32px 0 48px;
+      border-top: 1px solid #ddd5c8;
+      text-align: center;
+    }
+
+    .footer p { font-size: 13px; color: #6b6155; }
+    .footer a { color: #6b6155; text-decoration: underline; text-underline-offset: 2px; }
+    .footer a:hover { color: #1e1a14; }
+
+    @media (max-width: 600px) {
+      .doc-title { font-size: 26px; }
+      .final-output, .trace-record { padding: 36px 0; }
+      .trace-record { padding-bottom: 48px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <a href="index.html" class="back-link">&larr; All examples</a>
+  </div>
+
+  <div class="container">
+    <div class="doc-header">
+      <div class="doc-label">Trace Document</div>
+      <h1 class="doc-title">The Pitch</h1>
+      <div class="doc-meta">
+        <span>Grant application narrative</span>
+        <span>February 2026</span>
+        <span>Gemini</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="final-output">
+      <div class="section-label">Final Output</div>
+      <div class="output-text">
+        <p>Cedar Street Tutoring started because I couldn't find homework help for my daughter in our neighborhood and I have a master's degree. If it was hard for me, it was impossible for the parents working second shift at the warehouse or the ones who don't read English.</p>
+        <p>We run afterschool tutoring three days a week at the Cedar Street Community Center. Twelve volunteer tutors. Forty-two kids, ages 8 to 14, mostly from the Eastlake apartments. Last year, 31 of our students improved at least one letter grade in math. Nine improved two.</p>
+        <p>We don't use a proprietary curriculum. We use whatever the kid's school is using, and we help them do the actual homework they were assigned that day. This sounds simple but it's the thing that makes us different. We're not supplementing school — we're making school work.</p>
+        <p>What we need: $35,000 covers one year of operations. That's space rental, supplies, snacks, insurance, and a part-time coordinator so I can stop doing everything myself. The tutors are volunteers and they keep showing up. The space is donated three days a week by the church. The kids walk there from the apartments.</p>
+        <p>Everything about this is simple. The need is real, the model works, and the money goes exactly where you'd expect it to.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="trace-record">
+      <div class="section-label">Trace Record</div>
+      <p class="trace-instruction">Click any paragraph to see the prompt that produced it.</p>
+      <div class="controls">
+        <button class="reveal-btn" id="reveal-btn" onclick="revealAll()">Reveal all</button>
+      </div>
+      <div id="trace-units"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="container">
+      <p>Rendered in <a href="../">Trace</a> format. Prompts are verbatim.</p>
+    </div>
+  </div>
+
+  <script>
+    var units = [
+      {
+        id: 1,
+        text: "Cedar Street Tutoring started because I couldn\u2019t find homework help for my daughter in our neighborhood and I have a master\u2019s degree. If it was hard for me, it was impossible for the parents working second shift at the warehouse or the ones who don\u2019t read English.",
+        prompt: "i need to write the narrative section for a grant application for my nonprofit cedar street tutoring, we do afterschool tutoring 3 days a week at the community center for kids from eastlake apartments, 42 kids 12 tutors, we need 35k for a year of operations",
+        reaction: "this sounds like every grant application ever written. 'our mission is to empower underserved youth through educational enrichment' \u2014 i would reject this myself",
+        type: "prompted"
+      },
+      {
+        id: 2,
+        text: "We run afterschool tutoring three days a week at the Cedar Street Community Center. Twelve volunteer tutors. Forty-two kids, ages 8 to 14, mostly from the Eastlake apartments. Last year, 31 of our students improved at least one letter grade in math. Nine improved two.",
+        prompt: "start with why i started it. i have a masters degree and i still couldn't find homework help for my kid in our neighborhood. if it was hard for me its impossible for the parents working second shift at the warehouse or the ones who don't read english. that's the real reason, not 'empowering youth'",
+        reaction: null,
+        type: "prompted"
+      },
+      {
+        id: 3,
+        text: "We don\u2019t use a proprietary curriculum. We use whatever the kid\u2019s school is using, and we help them do the actual homework they were assigned that day. This sounds simple but it\u2019s the thing that makes us different. We\u2019re not supplementing school \u2014 we\u2019re making school work.",
+        prompt: "for the approach section don't say 'evidence-based methodology' or whatever you said. we literally just help kids do their actual homework from school that day. we use whatever curriculum their school uses. that's the whole thing and it's why it works \u2014 we're not adding another program, we're making school actually work for them",
+        reaction: null,
+        type: "prompted"
+      },
+      {
+        id: 4,
+        text: "What we need: $35,000 covers one year of operations. That\u2019s space rental, supplies, snacks, insurance, and a part-time coordinator so I can stop doing everything myself. The tutors are volunteers and they keep showing up. The space is donated three days a week by the church. The kids walk there from the apartments.",
+        prompt: "the results section is too long. just say: last year 31 of 42 kids went up at least one letter grade in math, 9 went up two. that's it. don't extrapolate or project or put it in a table. and for the budget just be blunt: 35k is space rental supplies snacks insurance and a part-time coordinator so i can stop doing everything myself. tutors are volunteers, space is donated by the church 3 days a week, kids walk from the apartments",
+        reaction: "good but take out the sentence about 'sustainable funding model.' we don't have a sustainable funding model. we have this grant application",
+        type: "prompted"
+      },
+      {
+        id: 5,
+        text: "Everything about this is simple. The need is real, the model works, and the money goes exactly where you\u2019d expect it to.",
+        prompt: null,
+        reaction: null,
+        type: "human"
+      }
+    ];
+
+    function buildTrace() {
+      var container = document.getElementById('trace-units');
+      var html = '';
+      for (var i = 0; i < units.length; i++) {
+        var u = units[i];
+        html += '<div class="trace-unit type-' + u.type + '" data-id="' + u.id + '" onclick="toggleUnit(' + u.id + ')">';
+        html += '<div class="unit-number">UNIT ' + u.id + '</div>';
+        html += '<p>' + u.text + '</p>';
+        html += '</div>';
+        html += '<div class="annotation" id="annotation-' + u.id + '">';
+        html += '<div class="annotation-inner type-' + u.type + '">';
+        var labelClass = 'label-' + u.type;
+        html += '<div class="annotation-label ' + labelClass + '">' + u.type.toUpperCase() + '</div>';
+        if (u.type === 'human') {
+          html += '<div class="human-note">Written directly by the author. No AI prompt produced this text.</div>';
+        } else {
+          if (u.prompt) html += '<div class="prompt-text">' + u.prompt + '</div>';
+          if (u.reaction) {
+            html += '<div class="reaction-label">Reaction</div>';
+            html += '<div class="reaction-text">' + u.reaction + '</div>';
+          }
+        }
+        html += '</div></div>';
+      }
+      container.innerHTML = html;
+    }
+
+    function toggleUnit(id) {
+      document.getElementById('annotation-' + id).classList.toggle('open');
+      document.querySelector('.trace-unit[data-id="' + id + '"]').classList.toggle('open');
+      updateRevealBtn();
+    }
+
+    function revealAll() {
+      var annotations = document.querySelectorAll('.annotation');
+      var traceUnits = document.querySelectorAll('.trace-unit');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      for (var i = 0; i < annotations.length; i++) {
+        if (allOpen) { annotations[i].classList.remove('open'); traceUnits[i].classList.remove('open'); }
+        else { annotations[i].classList.add('open'); traceUnits[i].classList.add('open'); }
+      }
+      updateRevealBtn();
+    }
+
+    function updateRevealBtn() {
+      var annotations = document.querySelectorAll('.annotation');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      document.getElementById('reveal-btn').textContent = allOpen ? 'Collapse all' : 'Reveal all';
+    }
+
+    buildTrace();
+  </script>
+</body>
+</html>

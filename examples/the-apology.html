@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trace: The Apology</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f5f0e8;
+      color: #1e1a14;
+      font-family: Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Back link ── */
+    .back-link {
+      display: inline-block;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      text-decoration: none;
+      padding: 24px 0 0;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: #1e1a14; }
+
+    /* ── Document header ── */
+    .doc-header {
+      padding: 48px 0 40px;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .doc-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #6b6155;
+      margin-bottom: 12px;
+    }
+
+    .doc-title {
+      font-family: Georgia, serif;
+      font-size: 32px;
+      line-height: 1.25;
+      font-weight: normal;
+      margin-bottom: 12px;
+    }
+
+    .doc-meta {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      line-height: 1.6;
+    }
+
+    .doc-meta span + span::before {
+      content: '\00a0\00b7\00a0';
+    }
+
+    /* ── Final output ── */
+    .final-output {
+      padding: 48px 0;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .section-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #1e1a14;
+      margin-bottom: 24px;
+    }
+
+    .output-text p {
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+
+    .output-text p:last-child { margin-bottom: 0; }
+
+    /* ── Trace record ── */
+    .trace-record {
+      padding: 48px 0 80px;
+    }
+
+    .trace-instruction {
+      font-size: 15px;
+      color: #6b6155;
+      margin-bottom: 28px;
+      font-style: italic;
+    }
+
+    .trace-unit {
+      cursor: pointer;
+      padding: 10px 12px;
+      margin: 0 -12px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+
+    .trace-unit:hover { background: rgba(0, 0, 0, 0.03); }
+
+    .trace-unit.type-prompted.open,
+    .trace-unit.type-prompted:hover { background: rgba(245, 158, 11, 0.08); }
+
+    .trace-unit.type-human.open,
+    .trace-unit.type-human:hover { background: rgba(34, 197, 94, 0.08); }
+
+    .trace-unit.type-hybrid.open,
+    .trace-unit.type-hybrid:hover { background: rgba(245, 158, 11, 0.08); }
+
+    .trace-unit p {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.65;
+    }
+
+    .trace-unit + .trace-unit { margin-top: 8px; }
+
+    .unit-number {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: #b5ad9e;
+      margin-bottom: 4px;
+    }
+
+    .annotation {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+      margin: 0 -12px;
+    }
+
+    .annotation.open { max-height: 500px; }
+
+    .annotation-inner {
+      background: #f0ece4;
+      padding: 16px 20px;
+      margin: 6px 0 8px;
+      border-radius: 4px;
+    }
+
+    .annotation-inner.type-prompted { border-top: 3px solid rgba(245, 158, 11, 0.6); }
+    .annotation-inner.type-human { border-top: 3px solid rgba(34, 197, 94, 0.5); }
+    .annotation-inner.type-hybrid { border-top: 3px solid rgba(245, 158, 11, 0.6); }
+
+    .annotation-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .label-prompted { color: rgba(245, 158, 11, 0.85); }
+    .label-human { color: #16a34a; }
+    .label-hybrid { color: rgba(245, 158, 11, 0.85); }
+
+    .prompt-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+      margin-top: 8px;
+    }
+
+    .prompt-text::before { content: '\201C'; }
+    .prompt-text::after { content: '\201D'; }
+
+    .reaction-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ef4444;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+
+    .reaction-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+    }
+
+    .reaction-text::before { content: '\201C'; }
+    .reaction-text::after { content: '\201D'; }
+
+    .human-note {
+      font-size: 14px;
+      color: #6b6155;
+      font-style: italic;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .reveal-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b6155;
+      background: none;
+      border: 1px solid #ddd5c8;
+      padding: 7px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .reveal-btn:hover { color: #1e1a14; border-color: #b5ad9e; }
+
+    /* ── Footer ── */
+    .footer {
+      padding: 32px 0 48px;
+      border-top: 1px solid #ddd5c8;
+      text-align: center;
+    }
+
+    .footer p {
+      font-size: 13px;
+      color: #6b6155;
+    }
+
+    .footer a {
+      color: #6b6155;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .footer a:hover { color: #1e1a14; }
+
+    @media (max-width: 600px) {
+      .doc-title { font-size: 26px; }
+      .final-output, .trace-record { padding: 36px 0; }
+      .trace-record { padding-bottom: 48px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <a href="index.html" class="back-link">&larr; All examples</a>
+  </div>
+
+  <div class="container">
+    <div class="doc-header">
+      <div class="doc-label">Trace Document</div>
+      <h1 class="doc-title">The Apology</h1>
+      <div class="doc-meta">
+        <span>Public blog post after a data breach</span>
+        <span>March 2026</span>
+        <span>Claude</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="final-output">
+      <div class="section-label">Final Output</div>
+      <div class="output-text">
+        <p>Last Thursday, we discovered that an unauthorized party accessed a database containing email addresses and hashed passwords for approximately 140,000 accounts. We've since closed the vulnerability, reset all affected passwords, and engaged a third-party security firm to audit our infrastructure end to end.</p>
+        <p>I want to be direct about what happened. A misconfigured access control on a staging environment allowed an attacker to reach production data through a path we hadn't tested. That's on us. Not on a sophisticated attack -- on a gap in our own process.</p>
+        <p>If you had an account with us before March 12, your email address was exposed. Passwords were hashed with bcrypt, which means they're extremely difficult to reverse, but we're requiring a reset anyway. You'll get an email with instructions today.</p>
+        <p>We're a 40-person company. We don't have a CISO or a dedicated security team. That's not an excuse -- it's the context for why this happened and what we're changing. Starting this month, we're bringing on a fractional CISO and moving to quarterly external pen testing.</p>
+        <p>I'm sorry. Not in the PR-statement sense -- in the sense that real people trusted us with their information and we didn't protect it well enough.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="trace-record">
+      <div class="section-label">Trace Record</div>
+      <p class="trace-instruction">Click any paragraph to see the prompt that produced it.</p>
+      <div class="controls">
+        <button class="reveal-btn" id="reveal-btn" onclick="revealAll()">Reveal all</button>
+      </div>
+      <div id="trace-units"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="container">
+      <p>Rendered in <a href="../">Trace</a> format. Prompts are verbatim.</p>
+    </div>
+  </div>
+
+  <script>
+    var units = [
+      {
+        id: 1,
+        text: "Last Thursday, we discovered that an unauthorized party accessed a database containing email addresses and hashed passwords for approximately 140,000 accounts. We\u2019ve since closed the vulnerability, reset all affected passwords, and engaged a third-party security firm to audit our infrastructure end to end.",
+        prompt: "write a blog post about our data breach, 140k accounts got email and hashed passwords exposed last thursday because of a misconfigured staging env, we already patched it and hired a security firm",
+        reaction: "this reads like a press release. 'we take security seriously' \u2014 everyone says that, it means nothing. start over",
+        type: "prompted"
+      },
+      {
+        id: 2,
+        text: "I want to be direct about what happened. A misconfigured access control on a staging environment allowed an attacker to reach production data through a path we hadn\u2019t tested. That\u2019s on us. Not on a sophisticated attack \u2014 on a gap in our own process.",
+        prompt: "try again but actually say what went wrong technically, the staging access control was misconfigured and it let someone reach prod through a path we didn't test. be honest about it, don't hide behind passive voice",
+        reaction: null,
+        type: "prompted"
+      },
+      {
+        id: 3,
+        text: "If you had an account with us before March 12, your email address was exposed. Passwords were hashed with bcrypt, which means they\u2019re extremely difficult to reverse, but we\u2019re requiring a reset anyway. You\u2019ll get an email with instructions today.",
+        prompt: "the part about what users should do is buried in paragraph 4, move it up, and be specific: if they had an account before march 12, email exposed, passwords were bcrypt hashed so hard to reverse but we're resetting anyway",
+        reaction: null,
+        type: "prompted"
+      },
+      {
+        id: 4,
+        text: "We\u2019re a 40-person company. We don\u2019t have a CISO or a dedicated security team. That\u2019s not an excuse \u2014 it\u2019s the context for why this happened and what we\u2019re changing. Starting this month, we\u2019re bringing on a fractional CISO and moving to quarterly external pen testing.",
+        prompt: "ok now there's this weird paragraph about 'our commitment to security going forward' that lists 7 bullet points. nobody believes a list of security promises after a breach. just say we're small, we don't have a ciso, and that's the actual reason this happened. and say what we're actually doing: fractional ciso and quarterly pen tests",
+        reaction: "better but cut 'we take full responsibility' \u2014 that's another phrase that means nothing when everyone says it",
+        type: "prompted"
+      },
+      {
+        id: 5,
+        text: "I\u2019m sorry. Not in the PR-statement sense \u2014 in the sense that real people trusted us with their information and we didn\u2019t protect it well enough.",
+        prompt: null,
+        reaction: null,
+        type: "human"
+      }
+    ];
+
+    function buildTrace() {
+      var container = document.getElementById('trace-units');
+      var html = '';
+      for (var i = 0; i < units.length; i++) {
+        var u = units[i];
+        html += '<div class="trace-unit type-' + u.type + '" data-id="' + u.id + '" onclick="toggleUnit(' + u.id + ')">';
+        html += '<div class="unit-number">UNIT ' + u.id + '</div>';
+        html += '<p>' + u.text + '</p>';
+        html += '</div>';
+        html += '<div class="annotation" id="annotation-' + u.id + '">';
+        html += '<div class="annotation-inner type-' + u.type + '">';
+        var labelClass = 'label-' + u.type;
+        html += '<div class="annotation-label ' + labelClass + '">' + u.type.toUpperCase() + '</div>';
+        if (u.type === 'human') {
+          html += '<div class="human-note">Written directly by the author. No AI prompt produced this text.</div>';
+        } else {
+          if (u.prompt) html += '<div class="prompt-text">' + u.prompt + '</div>';
+          if (u.reaction) {
+            html += '<div class="reaction-label">Reaction</div>';
+            html += '<div class="reaction-text">' + u.reaction + '</div>';
+          }
+        }
+        html += '</div></div>';
+      }
+      container.innerHTML = html;
+    }
+
+    function toggleUnit(id) {
+      document.getElementById('annotation-' + id).classList.toggle('open');
+      document.querySelector('.trace-unit[data-id="' + id + '"]').classList.toggle('open');
+      updateRevealBtn();
+    }
+
+    function revealAll() {
+      var annotations = document.querySelectorAll('.annotation');
+      var traceUnits = document.querySelectorAll('.trace-unit');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      for (var i = 0; i < annotations.length; i++) {
+        if (allOpen) { annotations[i].classList.remove('open'); traceUnits[i].classList.remove('open'); }
+        else { annotations[i].classList.add('open'); traceUnits[i].classList.add('open'); }
+      }
+      updateRevealBtn();
+    }
+
+    function updateRevealBtn() {
+      var annotations = document.querySelectorAll('.annotation');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      document.getElementById('reveal-btn').textContent = allOpen ? 'Collapse all' : 'Reveal all';
+    }
+
+    buildTrace();
+  </script>
+</body>
+</html>
