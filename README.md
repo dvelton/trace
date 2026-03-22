@@ -27,6 +27,7 @@ examples/the-goodbye.html       Employee farewell email (unit view)
 examples/the-pitch.html         Nonprofit grant narrative (unit view)
 examples/the-update.html        Startup investor email (session + unit)
 examples/the-recommendation.html  LinkedIn recommendation (session + unit)
+examples/the-post.html          LinkedIn post about Trace (session + unit)
 ```
 
 No build step, no dependencies, no backend. Each page is self-contained HTML.

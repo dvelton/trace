@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trace: The Post</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f5f0e8;
+      color: #1e1a14;
+      font-family: Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Back link ── */
+    .back-link {
+      display: inline-block;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      text-decoration: none;
+      padding: 24px 0 0;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: #1e1a14; }
+
+    /* ── Document header ── */
+    .doc-header {
+      padding: 48px 0 40px;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .doc-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #6b6155;
+      margin-bottom: 12px;
+    }
+
+    .doc-title {
+      font-family: Georgia, serif;
+      font-size: 32px;
+      line-height: 1.25;
+      font-weight: normal;
+      margin-bottom: 12px;
+    }
+
+    .doc-meta {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      line-height: 1.6;
+    }
+
+    .doc-meta span + span::before {
+      content: '\00a0\00b7\00a0';
+    }
+
+    /* ── Final output ── */
+    .final-output {
+      padding: 48px 0;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .section-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #1e1a14;
+      margin-bottom: 24px;
+    }
+
+    .output-text p {
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+
+    .output-text p:last-child { margin-bottom: 0; }
+
+    /* ── Trace record ── */
+    .trace-record {
+      padding: 48px 0 80px;
+    }
+
+    .trace-instruction {
+      font-size: 15px;
+      color: #6b6155;
+      margin-bottom: 28px;
+      font-style: italic;
+    }
+
+    /* ── View toggle ── */
+    .view-toggle {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+    }
+
+    .view-toggle-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b6155;
+      background: none;
+      border: 1px solid #ddd5c8;
+      padding: 7px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .view-toggle-btn:hover { color: #1e1a14; border-color: #b5ad9e; }
+
+    .view-toggle-btn.active {
+      background: #1e1a14;
+      color: #f5f0e8;
+      border-color: #1e1a14;
+    }
+
+    /* ── View containers ── */
+    .view-container { display: none; }
+    .view-container.active { display: block; }
+
+    /* ── Session view ── */
+    .session-card {
+      background: #fefcf8;
+      border: 1px solid #ddd5c8;
+      border-radius: 8px;
+      padding: 8px 32px;
+    }
+
+    .session-message {
+      padding: 20px 0;
+    }
+
+    .session-message + .session-message {
+      border-top: 1px solid #ece7de;
+    }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .message-number {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      font-weight: bold;
+      color: #b5ad9e;
+    }
+
+    .message-role {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .role-prompt { color: rgba(245, 158, 11, 0.85); }
+    .role-reaction { color: #ef4444; }
+    .role-edit { color: #8b5cf6; }
+
+    .message-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      color: #4a3f32;
+      line-height: 1.6;
+    }
+
+    /* ── Unit view ── */
+    .trace-unit {
+      cursor: pointer;
+      padding: 10px 12px;
+      margin: 0 -12px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+
+    .trace-unit:hover { background: rgba(0, 0, 0, 0.03); }
+
+    .trace-unit.type-prompted.open,
+    .trace-unit.type-prompted:hover { background: rgba(245, 158, 11, 0.08); }
+
+    .trace-unit p {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.65;
+    }
+
+    .trace-unit + .trace-unit { margin-top: 8px; }
+
+    .unit-number {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: #b5ad9e;
+      margin-bottom: 4px;
+    }
+
+    .annotation {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+      margin: 0 -12px;
+    }
+
+    .annotation.open { max-height: 500px; }
+
+    .annotation-inner {
+      background: #f0ece4;
+      padding: 16px 20px;
+      margin: 6px 0 8px;
+      border-radius: 4px;
+      border-top: 3px solid rgba(245, 158, 11, 0.6);
+    }
+
+    .annotation-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      color: rgba(245, 158, 11, 0.85);
+    }
+
+    .prompt-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+      margin-top: 8px;
+    }
+
+    .prompt-text::before { content: '\201C'; }
+    .prompt-text::after { content: '\201D'; }
+
+    .reaction-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ef4444;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+
+    .reaction-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+    }
+
+    .reaction-text::before { content: '\201C'; }
+    .reaction-text::after { content: '\201D'; }
+
+    .rounds-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      color: #b5ad9e;
+      margin-top: 10px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .reveal-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b6155;
+      background: none;
+      border: 1px solid #ddd5c8;
+      padding: 7px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .reveal-btn:hover { color: #1e1a14; border-color: #b5ad9e; }
+
+    /* ── Footer ── */
+    .footer {
+      padding: 32px 0 48px;
+      border-top: 1px solid #ddd5c8;
+      text-align: center;
+    }
+
+    .footer p {
+      font-size: 13px;
+      color: #6b6155;
+    }
+
+    .footer a {
+      color: #6b6155;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .footer a:hover { color: #1e1a14; }
+
+    @media (max-width: 600px) {
+      .doc-title { font-size: 26px; }
+      .final-output, .trace-record { padding: 36px 0; }
+      .trace-record { padding-bottom: 48px; }
+      .session-card { padding: 8px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <a href="index.html" class="back-link">&larr; All examples</a>
+  </div>
+
+  <div class="container">
+    <div class="doc-header">
+      <div class="doc-label">Trace Document</div>
+      <h1 class="doc-title">The Post</h1>
+      <div class="doc-meta">
+        <span>LinkedIn post</span>
+        <span>March 2026</span>
+        <span>GitHub Copilot CLI (Claude Opus 4.6)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="final-output">
+      <div class="section-label">Final Output</div>
+      <div class="output-text">
+        <p>This is an AI-generated post, and an experiment with a small tool I built as a side project.</p>
+        <p>Most of us use AI to help write things now. The outputs are fine, sometimes generic, but they get the job done. And nobody&#x2019;s going to start publishing their prompt history alongside every email they send.</p>
+        <p>But sometimes I&#x2019;m curious about the back-and-forth that produced something rather than the finished version. The rejected first draft, the specific detail someone pulled from memory, the mid-conversation pivot when they realized what they actually wanted to say.</p>
+        <p>So I built a small thing that shows that layer. You paste one prompt at the end of any AI conversation and it produces a document with your prompts and steering inline with the finished text, so a reader can peel back each paragraph and see the unique human factor underneath.</p>
+        <p>This post was written that way. You&#x2019;re looking at it.</p>
+        <p>I&#x2019;m curious whether there&#x2019;s a time and place for this sort of thing, where showing how you got to the final version would actually be worth sharing.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="trace-record">
+      <div class="section-label">Trace Record</div>
+      <p class="trace-instruction">View the prompts behind each paragraph, or browse the full session chronologically.</p>
+
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="btn-session" onclick="switchView('session')">Session view</button>
+        <button class="view-toggle-btn" id="btn-unit" onclick="switchView('unit')">Unit view</button>
+      </div>
+
+      <!-- Session view -->
+      <div class="view-container active" id="view-session">
+        <div class="session-card" id="session-card"></div>
+      </div>
+
+      <!-- Unit view -->
+      <div class="view-container" id="view-unit">
+        <div class="controls">
+          <button class="reveal-btn" id="reveal-btn" onclick="revealAll()">Reveal all</button>
+        </div>
+        <div id="trace-units"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="container">
+      <p>Rendered in <a href="../">Trace</a> format. Prompts are verbatim.</p>
+    </div>
+  </div>
+
+  <script>
+    var sessionMessages = [
+      { id: 1, message: "what would be an almost meta, compelling, but also clear example of a use of my tool at https://github.com/dvelton/trace that i could turn into a linkedin post that is itself a trace, and highlights to my network the dyanmics i\u2019m trying to explore with Trace, about how since 2023 the entire world began to have polished writing outputs and how fascinating it would be to see the glimmers of personality and brainwork inherent in how folks prompt and steer an LLM to arrive at the final output", role: "prompt" },
+      { id: 2, message: "way too long and sounds like a pitch, i\u2019m not selling anything to my network and more just curious what they think about this dynamic", role: "reaction" },
+      { id: 3, message: "not so much about authorship as about whether there\u2019s a place for such Trace posts, where a writer may be interested in revealing their thinking, their pivots with the AI tool, their reactions - it\u2019s clear nobody\u2019s going to be sharing their prompt chains in the regular course of things, but wondering if there\u2019s a time and place where an author/poster might find this interesting to their audience", role: "reaction" },
+      { id: 4, message: "the post itself looks too AI slop-ish, em dashes and the sort of phrasing, humanize it", role: "reaction" },
+      { id: 5, message: "on the last point, not arguing anything in this post, it\u2019s all just curiosity", role: "reaction" },
+      { id: 6, message: "in the second paragraph, not \u201Cmore curious\u201D but just \u201Ccurious\u201D", role: "edit" },
+      { id: 7, message: "would also clarify that a Trace can display the human prompts and steering inline with the text so the final output almost becomes like an archaeological artifact that can reveal things about the author (if they want) that their audience might find interesting", role: "prompt" },
+      { id: 8, message: "clarify that this is just a fun side project, not something i\u2019m building out; more a thought experiment than anything....also the question at the end looks like engagement bait, no need for that; make this all much shorter too", role: "reaction" },
+      { id: 9, message: "don\u2019t overstate the quality of outputs, there\u2019s a real issue of generic AI slop that most people can detect by now", role: "reaction" },
+      { id: 10, message: "make the start \u201CThis is an AI generated post and an experiment of a small tool i built as a side project\u201D or something along those lines, also i\u2019m curious about the angle of whether there\u2019s a time and place for people to post Traces like this", role: "prompt" },
+      { id: 11, message: "in the third to last paragraph at the end, it\u2019s not just \u201Chuman decisions underneath\u201D but \u201Csee the unique human factor underneath\u201D", role: "edit" }
+    ];
+
+    var units = [
+      {
+        id: 1,
+        text: "This is an AI-generated post, and an experiment with a small tool I built as a side project.",
+        prompt: "make the start \u201CThis is an AI generated post and an experiment of a small tool i built as a side project\u201D or something along those lines, also i\u2019m curious about the angle of whether there\u2019s a time and place for people to post Traces like this",
+        reaction: "way too long and sounds like a pitch, i\u2019m not selling anything to my network and more just curious what they think about this dynamic",
+        type: "prompted",
+        rounds: "2, 8, 10"
+      },
+      {
+        id: 2,
+        text: "Most of us use AI to help write things now. The outputs are fine, sometimes generic, but they get the job done. And nobody\u2019s going to start publishing their prompt history alongside every email they send.",
+        prompt: "what would be an almost meta, compelling, but also clear example of a use of my tool at https://github.com/dvelton/trace that i could turn into a linkedin post that is itself a trace, and highlights to my network the dyanmics i\u2019m trying to explore with Trace, about how since 2023 the entire world began to have polished writing outputs and how fascinating it would be to see the glimmers of personality and brainwork inherent in how folks prompt and steer an LLM to arrive at the final output",
+        reaction: "don\u2019t overstate the quality of outputs, there\u2019s a real issue of generic AI slop that most people can detect by now",
+        type: "prompted",
+        rounds: "1, 3, 9"
+      },
+      {
+        id: 3,
+        text: "But sometimes I\u2019m curious about the back-and-forth that produced something rather than the finished version. The rejected first draft, the specific detail someone pulled from memory, the mid-conversation pivot when they realized what they actually wanted to say.",
+        prompt: "not so much about authorship as about whether there\u2019s a place for such Trace posts, where a writer may be interested in revealing their thinking, their pivots with the AI tool, their reactions - it\u2019s clear nobody\u2019s going to be sharing their prompt chains in the regular course of things, but wondering if there\u2019s a time and place where an author/poster might find this interesting to their audience",
+        reaction: "on the last point, not arguing anything in this post, it\u2019s all just curiosity",
+        type: "prompted",
+        rounds: "1, 3, 5, 6"
+      },
+      {
+        id: 4,
+        text: "So I built a small thing that shows that layer. You paste one prompt at the end of any AI conversation and it produces a document with your prompts and steering inline with the finished text, so a reader can peel back each paragraph and see the unique human factor underneath.",
+        prompt: "would also clarify that a Trace can display the human prompts and steering inline with the text so the final output almost becomes like an archaeological artifact that can reveal things about the author (if they want) that their audience might find interesting",
+        reaction: "in the third to last paragraph at the end, it\u2019s not just \u201Chuman decisions underneath\u201D but \u201Csee the unique human factor underneath\u201D",
+        type: "prompted",
+        rounds: "7, 8, 11"
+      },
+      {
+        id: 5,
+        text: "This post was written that way. You\u2019re looking at it.",
+        prompt: "what would be an almost meta, compelling, but also clear example of a use of my tool at https://github.com/dvelton/trace that i could turn into a linkedin post that is itself a trace",
+        reaction: null,
+        type: "prompted",
+        rounds: "1"
+      },
+      {
+        id: 6,
+        text: "I\u2019m curious whether there\u2019s a time and place for this sort of thing, where showing how you got to the final version would actually be worth sharing.",
+        prompt: "also i\u2019m curious about the angle of whether there\u2019s a time and place for people to post Traces like this",
+        reaction: "clarify that this is just a fun side project, not something i\u2019m building out; more a thought experiment than anything....also the question at the end looks like engagement bait, no need for that; make this all much shorter too",
+        type: "prompted",
+        rounds: "3, 8, 10"
+      }
+    ];
+
+    /* ── View toggle ── */
+    function switchView(view) {
+      var views = document.querySelectorAll('.view-container');
+      var btns = document.querySelectorAll('.view-toggle-btn');
+      for (var i = 0; i < views.length; i++) { views[i].classList.remove('active'); }
+      for (var i = 0; i < btns.length; i++) { btns[i].classList.remove('active'); }
+      document.getElementById('view-' + view).classList.add('active');
+      document.getElementById('btn-' + view).classList.add('active');
+    }
+
+    /* ── Session view ── */
+    function buildSession() {
+      var container = document.getElementById('session-card');
+      var html = '';
+      for (var i = 0; i < sessionMessages.length; i++) {
+        var m = sessionMessages[i];
+        var roleClass = 'role-' + m.role;
+        html += '<div class="session-message">';
+        html += '<div class="message-header">';
+        html += '<span class="message-number">[' + m.id + ']</span>';
+        html += '<span class="message-role ' + roleClass + '">' + m.role.toUpperCase() + '</span>';
+        html += '</div>';
+        html += '<div class="message-text">' + m.message + '</div>';
+        html += '</div>';
+      }
+      container.innerHTML = html;
+    }
+
+    /* ── Unit view ── */
+    function buildTrace() {
+      var container = document.getElementById('trace-units');
+      var html = '';
+      for (var i = 0; i < units.length; i++) {
+        var u = units[i];
+        html += '<div class="trace-unit type-' + u.type + '" data-id="' + u.id + '" onclick="toggleUnit(' + u.id + ')">';
+        html += '<div class="unit-number">UNIT ' + u.id + '</div>';
+        html += '<p>' + u.text + '</p>';
+        html += '</div>';
+        html += '<div class="annotation" id="annotation-' + u.id + '">';
+        html += '<div class="annotation-inner">';
+        html += '<div class="annotation-label">PROMPTED</div>';
+        if (u.prompt) html += '<div class="prompt-text">' + u.prompt + '</div>';
+        if (u.reaction) {
+          html += '<div class="reaction-label">Reaction</div>';
+          html += '<div class="reaction-text">' + u.reaction + '</div>';
+        }
+        if (u.rounds) html += '<div class="rounds-label">Rounds: ' + u.rounds + '</div>';
+        html += '</div></div>';
+      }
+      container.innerHTML = html;
+    }
+
+    function toggleUnit(id) {
+      document.getElementById('annotation-' + id).classList.toggle('open');
+      document.querySelector('.trace-unit[data-id="' + id + '"]').classList.toggle('open');
+      updateRevealBtn();
+    }
+
+    function revealAll() {
+      var annotations = document.querySelectorAll('#view-unit .annotation');
+      var traceUnits = document.querySelectorAll('#view-unit .trace-unit');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      for (var i = 0; i < annotations.length; i++) {
+        if (allOpen) { annotations[i].classList.remove('open'); traceUnits[i].classList.remove('open'); }
+        else { annotations[i].classList.add('open'); traceUnits[i].classList.add('open'); }
+      }
+      updateRevealBtn();
+    }
+
+    function updateRevealBtn() {
+      var annotations = document.querySelectorAll('#view-unit .annotation');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      document.getElementById('reveal-btn').textContent = allOpen ? 'Collapse all' : 'Reveal all';
+    }
+
+    buildSession();
+    buildTrace();
+  </script>
+</body>
+</html>
