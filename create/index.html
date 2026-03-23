@@ -803,13 +803,14 @@
 
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
+        var trimmed = line.replace(/^\s+/, '');
         var matched = false;
         for (var j = 0; j < fieldNames.length; j++) {
           var prefix = fieldNames[j] + ':';
-          if (line.substring(0, prefix.length) === prefix) {
+          if (trimmed.substring(0, prefix.length) === prefix) {
             if (currentField) fields[currentField] = currentValue.join('\n').trim();
             currentField = fieldNames[j];
-            currentValue = [line.substring(prefix.length).trim()];
+            currentValue = [trimmed.substring(prefix.length).trim()];
             matched = true;
             break;
           }
@@ -835,13 +836,13 @@
       // Strip markdown code fences
       raw = raw.replace(/^```[^\n]*\n/, '').replace(/\n```\s*$/, '');
 
-      // Normalize: trim each line's trailing whitespace, collapse 3+ blank lines to 2
-      raw = raw.split('\n').map(function(l) { return l.replace(/\s+$/, ''); }).join('\n');
+      // Normalize: strip leading and trailing whitespace from every line, collapse excessive blank lines
+      raw = raw.split('\n').map(function(l) { return l.replace(/^\s+/, '').replace(/\s+$/, ''); }).join('\n');
       raw = raw.replace(/\n{3,}/g, '\n\n');
       raw = raw.trim();
 
-      // Normalize --- lines: treat any line that's just dashes (2+) with optional whitespace as ---
-      raw = raw.replace(/^[ \t]*-{2,}[ \t]*$/gm, '---');
+      // Normalize --- lines: treat any line that's just dashes (2+) as ---
+      raw = raw.replace(/^-{2,}$/gm, '---');
 
       var trace = {
         title: '', date: '', tool: '',
