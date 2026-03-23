@@ -800,15 +800,22 @@
       var fields = {};
       var currentField = null;
       var currentValue = [];
-      var pattern = new RegExp('^(' + fieldNames.join('|') + '):\\s*(.*)');
+
       for (var i = 0; i < lines.length; i++) {
-        var match = lines[i].match(pattern);
-        if (match) {
-          if (currentField) fields[currentField] = currentValue.join('\n').trim();
-          currentField = match[1];
-          currentValue = [match[2]];
-        } else if (currentField) {
-          currentValue.push(lines[i]);
+        var line = lines[i];
+        var matched = false;
+        for (var j = 0; j < fieldNames.length; j++) {
+          var prefix = fieldNames[j] + ':';
+          if (line.substring(0, prefix.length) === prefix) {
+            if (currentField) fields[currentField] = currentValue.join('\n').trim();
+            currentField = fieldNames[j];
+            currentValue = [line.substring(prefix.length).trim()];
+            matched = true;
+            break;
+          }
+        }
+        if (!matched && currentField) {
+          currentValue.push(line);
         }
       }
       if (currentField) fields[currentField] = currentValue.join('\n').trim();
