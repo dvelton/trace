@@ -9,8 +9,9 @@ Trace is a format for publishing AI-assisted writing with provenance. It preserv
 1. Write something with any AI tool (ChatGPT, Claude, Gemini, Copilot, Perplexity, anything).
 2. When you're done, visit **https://dvelton.github.io/trace/** and copy the closing prompt.
 3. Paste it into the same AI conversation. The AI already has your full session in context — it will reconstruct a Trace document from what it can see, reproducing your prompts word for word alongside the text they generated.
+4. Paste the AI's output into the **[Trace creator](https://dvelton.github.io/trace/create/)** to get a formatted page with a shareable URL.
 
-That's it. No signup, no install, no extension. One prompt, pasted at the end.
+No signup, no install, no extension. No data is stored on a server — the entire document is encoded in the URL.
 
 A Trace has two records:
 
@@ -21,6 +22,7 @@ A Trace has two records:
 
 ```
 index.html                      The format spec and closing prompt
+create/index.html               Trace creator and viewer (paste output, get shareable URL)
 examples/index.html             Example gallery
 examples/the-apology.html       CEO data breach response (unit view)
 examples/the-goodbye.html       Employee farewell email (unit view)

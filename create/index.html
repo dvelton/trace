@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta property="og:title" content="Trace">
+  <meta property="og:description" content="AI-assisted writing with provenance. See the prompts behind the text.">
+  <title>Create Your Trace</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f5f0e8;
+      color: #1e1a14;
+      font-family: Georgia, serif;
+      font-size: 17px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Top bar ── */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 0 0;
+    }
+
+    .back-link {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: #1e1a14; }
+
+    .github-link {
+      color: #b5ad9e;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .github-link:hover { color: #1e1a14; }
+
+    /* ── Page header ── */
+    .page-header {
+      padding: 48px 0 40px;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .site-name {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #1e1a14;
+      margin-bottom: 16px;
+    }
+
+    .page-title {
+      font-family: Georgia, serif;
+      font-size: 28px;
+      line-height: 1.35;
+      font-weight: normal;
+      margin-bottom: 16px;
+    }
+
+    .page-intro {
+      color: #3d362c;
+      line-height: 1.7;
+    }
+
+    .page-intro a {
+      color: #1e1a14;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    /* ── Steps ── */
+    .steps {
+      padding: 40px 0 32px;
+    }
+
+    .step {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .step-number {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #b5ad9e;
+      flex-shrink: 0;
+      width: 20px;
+      text-align: right;
+    }
+
+    .step-text {
+      font-size: 16px;
+      color: #3d362c;
+      line-height: 1.6;
+    }
+
+    .step-text a {
+      color: #1e1a14;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    /* ── Input area ── */
+    .input-section {
+      padding: 0 0 48px;
+    }
+
+    .trace-input {
+      width: 100%;
+      min-height: 300px;
+      background: #fefcf8;
+      border: 1px solid #ddd5c8;
+      border-radius: 8px;
+      padding: 24px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #1e1a14;
+      resize: vertical;
+    }
+
+    .trace-input:focus {
+      outline: none;
+      border-color: #b5ad9e;
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .trace-input::placeholder { color: #b5ad9e; }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      align-items: center;
+    }
+
+    .generate-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: #f5f0e8;
+      background: #1e1a14;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .generate-btn:hover { background: #3d362c; }
+
+    /* ── Error ── */
+    .error-msg {
+      margin-top: 16px;
+      padding: 16px 20px;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 6px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      color: #b91c1c;
+      line-height: 1.5;
+      display: none;
+    }
+
+    /* ── Result section ── */
+    .result-section {
+      padding: 40px 0;
+      border-top: 1px solid #ddd5c8;
+      display: none;
+    }
+
+    .url-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #1e1a14;
+      margin-bottom: 12px;
+    }
+
+    .url-display {
+      display: flex;
+      gap: 8px;
+    }
+
+    .url-input {
+      flex: 1;
+      background: #1e1a14;
+      color: #f0ebe0;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 16px;
+      min-width: 0;
+    }
+
+    .copy-url-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #f5f0e8;
+      background: #1e1a14;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    .copy-url-btn:hover { background: #3d362c; }
+
+    .url-note {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .start-over-link {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      margin-top: 24px;
+      display: inline-block;
+      transition: color 0.15s;
+    }
+
+    .start-over-link:hover { color: #1e1a14; }
+
+    /* ── Preview label ── */
+    .preview-divider {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #1e1a14;
+      margin-bottom: 24px;
+      margin-top: 40px;
+      padding-top: 40px;
+      border-top: 1px solid #ddd5c8;
+    }
+
+    /* ── Document header (view & preview) ── */
+    .doc-header {
+      padding: 48px 0 40px;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .doc-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #6b6155;
+      margin-bottom: 12px;
+    }
+
+    .doc-title {
+      font-family: Georgia, serif;
+      font-size: 32px;
+      line-height: 1.25;
+      font-weight: normal;
+      margin-bottom: 12px;
+    }
+
+    .doc-meta {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #6b6155;
+      line-height: 1.6;
+    }
+
+    .doc-meta span + span::before { content: '\00a0\00b7\00a0'; }
+
+    /* ── Final output ── */
+    .final-output {
+      padding: 48px 0;
+      border-bottom: 1px solid #ddd5c8;
+    }
+
+    .section-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #1e1a14;
+      margin-bottom: 24px;
+    }
+
+    .output-text p {
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+    .output-text p:last-child { margin-bottom: 0; }
+
+    /* ── Trace record ── */
+    .trace-record { padding: 48px 0 80px; }
+
+    .trace-instruction {
+      font-size: 15px;
+      color: #6b6155;
+      margin-bottom: 28px;
+      font-style: italic;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    /* ── View toggle ── */
+    .view-toggle {
+      display: flex;
+      gap: 0;
+      margin-bottom: 24px;
+    }
+
+    .view-toggle-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b6155;
+      background: none;
+      border: 1px solid #ddd5c8;
+      padding: 7px 16px;
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .view-toggle-btn:first-child { border-radius: 4px 0 0 4px; }
+    .view-toggle-btn:last-child { border-radius: 0 4px 4px 0; border-left: none; }
+    .view-toggle-btn:hover { color: #1e1a14; border-color: #b5ad9e; }
+    .view-toggle-btn.active {
+      background: #1e1a14;
+      color: #f5f0e8;
+      border-color: #1e1a14;
+    }
+    .view-toggle-btn.active + .view-toggle-btn { border-left: 1px solid #ddd5c8; }
+
+    .view-container { display: none; }
+    .view-container.active { display: block; }
+
+    /* ── Session view ── */
+    .session-card {
+      background: #fefcf8;
+      border: 1px solid #ddd5c8;
+      border-radius: 8px;
+      padding: 8px 32px;
+    }
+
+    .session-message { padding: 20px 0; }
+    .session-message + .session-message { border-top: 1px solid #ece7de; }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .message-number {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      font-weight: bold;
+      color: #b5ad9e;
+    }
+
+    .role-tag {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .role-prompt { color: rgba(245, 158, 11, 0.85); }
+    .role-reaction { color: #ef4444; }
+    .role-edit { color: #6b6155; }
+    .role-human { color: #16a34a; }
+
+    .message-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #4a3f32;
+    }
+
+    .human-addition-divider {
+      border-top: 1px solid #ece7de;
+      padding: 20px 0;
+    }
+
+    /* ── Unit view ── */
+    .trace-unit {
+      cursor: pointer;
+      padding: 10px 12px;
+      margin: 0 -12px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+
+    .trace-unit:hover { background: rgba(0, 0, 0, 0.03); }
+
+    .trace-unit.type-prompted.open,
+    .trace-unit.type-prompted:hover { background: rgba(245, 158, 11, 0.08); }
+
+    .trace-unit.type-human.open,
+    .trace-unit.type-human:hover { background: rgba(34, 197, 94, 0.08); }
+
+    .trace-unit.type-hybrid.open,
+    .trace-unit.type-hybrid:hover { background: rgba(245, 158, 11, 0.08); }
+
+    .trace-unit p {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.65;
+    }
+
+    .trace-unit + .trace-unit { margin-top: 8px; }
+
+    .unit-number {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: #b5ad9e;
+      margin-bottom: 4px;
+    }
+
+    .annotation {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+      margin: 0 -12px;
+    }
+
+    .annotation.open { max-height: 800px; }
+
+    .annotation-inner {
+      background: #f0ece4;
+      padding: 16px 20px;
+      margin: 6px 0 8px;
+      border-radius: 4px;
+    }
+
+    .annotation-inner.type-prompted { border-top: 3px solid rgba(245, 158, 11, 0.6); }
+    .annotation-inner.type-human { border-top: 3px solid rgba(34, 197, 94, 0.5); }
+    .annotation-inner.type-hybrid { border-top: 3px solid rgba(245, 158, 11, 0.6); }
+
+    .annotation-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .label-prompted { color: rgba(245, 158, 11, 0.85); }
+    .label-human { color: #16a34a; }
+    .label-hybrid { color: rgba(245, 158, 11, 0.85); }
+
+    .prompt-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+      margin-top: 8px;
+    }
+
+    .prompt-text::before { content: '\201C'; }
+    .prompt-text::after { content: '\201D'; }
+
+    .reaction-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ef4444;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+
+    .reaction-text {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #4a3f32;
+    }
+
+    .reaction-text::before { content: '\201C'; }
+    .reaction-text::after { content: '\201D'; }
+
+    .human-note {
+      font-size: 14px;
+      color: #6b6155;
+      font-style: italic;
+    }
+
+    .unit-rounds {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      color: #b5ad9e;
+      margin-top: 10px;
+    }
+
+    .reveal-btn {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b6155;
+      background: none;
+      border: 1px solid #ddd5c8;
+      padding: 7px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .reveal-btn:hover { color: #1e1a14; border-color: #b5ad9e; }
+
+    /* ── Footer ── */
+    .footer {
+      padding: 32px 0 48px;
+      border-top: 1px solid #ddd5c8;
+      text-align: center;
+    }
+    .footer p {
+      font-size: 13px;
+      color: #6b6155;
+      line-height: 1.8;
+    }
+    .footer a {
+      color: #6b6155;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .footer a:hover { color: #1e1a14; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .page-title { font-size: 22px; }
+      .doc-title { font-size: 26px; }
+      .trace-input { font-size: 12px; padding: 16px; }
+      .session-card { padding: 8px 20px; }
+      .url-display { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════ CREATE MODE ═══════════════ -->
+  <div id="create-mode">
+    <div class="container">
+      <div class="top-bar">
+        <a href="../" class="back-link">&larr; Trace</a>
+        <a href="https://github.com/dvelton/trace" class="github-link" aria-label="View on GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="page-header">
+        <div class="site-name">TRACE</div>
+        <h1 class="page-title">Create Your Trace</h1>
+        <p class="page-intro">You wrote something with AI and used the <a href="../">closing prompt</a> to get a Trace document. Paste that output below to turn it into a formatted page with a shareable URL.</p>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1.</div>
+          <div class="step-text">Write something with any AI tool.</div>
+        </div>
+        <div class="step">
+          <div class="step-number">2.</div>
+          <div class="step-text">Paste the <a href="../">closing prompt</a> at the end of your session.</div>
+        </div>
+        <div class="step">
+          <div class="step-number">3.</div>
+          <div class="step-text">Copy the Trace output the AI produces.</div>
+        </div>
+        <div class="step">
+          <div class="step-number">4.</div>
+          <div class="step-text">Paste it below.</div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <textarea id="trace-input" class="trace-input" placeholder="Paste your Trace output here..."></textarea>
+        <div class="btn-row">
+          <button class="generate-btn" onclick="generate()">Generate Trace</button>
+        </div>
+        <div id="error-msg" class="error-msg"></div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div id="result-section" class="result-section">
+        <div class="url-label">Shareable URL</div>
+        <div class="url-display">
+          <input type="text" id="share-url" class="url-input" readonly>
+          <button class="copy-url-btn" id="copy-url-btn" onclick="copyUrl()">Copy</button>
+        </div>
+        <div class="url-note" id="url-note">Anyone with this link can view your Trace. No data is stored on a server — the entire document is encoded in the URL.</div>
+        <button class="start-over-link" onclick="startOver()">Start over</button>
+
+        <div class="preview-divider">Preview</div>
+        <div id="preview-container"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="container">
+        <p>Rendered in <a href="../">Trace</a> format. Prompts are verbatim.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ VIEW MODE ═══════════════ -->
+  <div id="view-mode" style="display:none">
+    <div class="container">
+      <div class="top-bar">
+        <a href="../" class="back-link">&larr; Trace</a>
+        <a href="https://github.com/dvelton/trace" class="github-link" aria-label="View on GitHub">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="doc-header">
+        <div class="doc-label">TRACE</div>
+        <h1 class="doc-title" id="view-title"></h1>
+        <div class="doc-meta" id="view-meta"></div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="final-output">
+        <div class="section-label">Final Output</div>
+        <div class="output-text" id="view-output"></div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="trace-record" id="trace-record-section">
+        <div class="section-label">Trace Record</div>
+        <div class="view-toggle" id="view-toggle"></div>
+        <div class="view-container active" id="view-session">
+          <p class="trace-instruction">The conversation that produced the final text, in order.</p>
+          <div id="session-container"></div>
+        </div>
+        <div class="view-container" id="view-unit">
+          <p class="trace-instruction">Click any paragraph to see the prompt that produced it.</p>
+          <div class="controls">
+            <button class="reveal-btn" id="reveal-btn" onclick="revealAll()">Reveal all</button>
+          </div>
+          <div id="unit-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="container">
+        <p>Rendered in <a href="../">Trace</a> format. Prompts are verbatim.</p>
+        <p><a href="./">Create your own Trace</a></p>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    /* ═══════════════════════════════════════════
+       COMPRESSION
+       ═══════════════════════════════════════════ */
+
+    function toBase64Url(b64) {
+      return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function fromBase64Url(str) {
+      var b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4) b64 += '=';
+      return b64;
+    }
+
+    function uint8ToBase64Url(bytes) {
+      var binary = '';
+      for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      return toBase64Url(btoa(binary));
+    }
+
+    function base64UrlToUint8(str) {
+      var binary = atob(fromBase64Url(str));
+      var bytes = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    }
+
+    async function compressTrace(text) {
+      try {
+        if (typeof CompressionStream === 'undefined') throw new Error('unsupported');
+        var encoder = new TextEncoder();
+        var input = encoder.encode(text);
+        var cs = new CompressionStream('deflate');
+        var writer = cs.writable.getWriter();
+        writer.write(input);
+        writer.close();
+        var reader = cs.readable.getReader();
+        var chunks = [];
+        while (true) {
+          var result = await reader.read();
+          if (result.done) break;
+          chunks.push(result.value);
+        }
+        var totalLen = 0;
+        for (var i = 0; i < chunks.length; i++) totalLen += chunks[i].length;
+        var compressed = new Uint8Array(totalLen);
+        var offset = 0;
+        for (var i = 0; i < chunks.length; i++) {
+          compressed.set(chunks[i], offset);
+          offset += chunks[i].length;
+        }
+        return '1' + uint8ToBase64Url(compressed);
+      } catch (e) {
+        return '0' + toBase64Url(btoa(unescape(encodeURIComponent(text))));
+      }
+    }
+
+    async function decompressTrace(data) {
+      var prefix = data.charAt(0);
+      var payload = data.substring(1);
+
+      if (prefix === '1') {
+        var bytes = base64UrlToUint8(payload);
+        var ds = new DecompressionStream('deflate');
+        var writer = ds.writable.getWriter();
+        writer.write(bytes);
+        writer.close();
+        var reader = ds.readable.getReader();
+        var chunks = [];
+        while (true) {
+          var result = await reader.read();
+          if (result.done) break;
+          chunks.push(result.value);
+        }
+        var decoder = new TextDecoder();
+        var text = '';
+        for (var i = 0; i < chunks.length; i++) {
+          text += decoder.decode(chunks[i], { stream: true });
+        }
+        text += decoder.decode();
+        return text;
+      } else {
+        return decodeURIComponent(escape(atob(fromBase64Url(payload))));
+      }
+    }
+
+
+    /* ═══════════════════════════════════════════
+       PARSER
+       ═══════════════════════════════════════════ */
+
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode(text));
+      return div.innerHTML;
+    }
+
+    function parseFields(block, fieldNames) {
+      var lines = block.split('\n');
+      var fields = {};
+      var currentField = null;
+      var currentValue = [];
+      var pattern = new RegExp('^(' + fieldNames.join('|') + '):\\\\s*(.*)');
+
+      for (var i = 0; i < lines.length; i++) {
+        var match = lines[i].match(pattern);
+        if (match) {
+          if (currentField) fields[currentField] = currentValue.join('\n').trim();
+          currentField = match[1];
+          currentValue = [match[2]];
+        } else if (currentField) {
+          currentValue.push(lines[i]);
+        }
+      }
+      if (currentField) fields[currentField] = currentValue.join('\n').trim();
+      return fields;
+    }
+
+    function cleanNullValue(val) {
+      if (!val) return null;
+      var lower = val.toLowerCase().trim();
+      if (lower === 'none' || lower === 'n/a' || val.trim() === '\u2014' || val.trim() === '-') return null;
+      return val;
+    }
+
+    function parseTrace(raw) {
+      raw = raw.replace(/\r\n/g, '\n').trim();
+
+      // Strip markdown code fences
+      raw = raw.replace(/^```[^\n]*\n/, '').replace(/\n```\s*$/, '');
+
+      var trace = {
+        title: '', date: '', tool: '',
+        finalOutput: '',
+        sessionMessages: [], humanAdditions: [],
+        units: []
+      };
+
+      // Header
+      var headerMatch = raw.match(/---\s*\n\s*TRACE\s*\n([\s\S]*?)\n\s*---/);
+      if (headerMatch) {
+        var hLines = headerMatch[1].trim().split('\n');
+        trace.title = (hLines[0] || '').trim();
+        trace.date = (hLines[1] || '').trim();
+        trace.tool = (hLines[2] || '').trim();
+      }
+
+      // Section boundaries
+      var foIdx = raw.indexOf('FINAL OUTPUT:');
+      var srIdx = raw.indexOf('SESSION RECORD:');
+      var urIdx = raw.indexOf('UNIT RECORD:');
+      var endIdx = raw.indexOf('END TRACE');
+
+      // Final output
+      if (foIdx > -1) {
+        var foEnd = srIdx > -1 ? srIdx : urIdx > -1 ? urIdx : endIdx > -1 ? endIdx : raw.length;
+        var foText = raw.substring(foIdx + 'FINAL OUTPUT:'.length, foEnd);
+        foText = foText.replace(/^\s*\n---\s*\n/, '\n').replace(/\n---\s*\n?\s*$/, '').trim();
+        trace.finalOutput = foText;
+      }
+
+      // Session record
+      if (srIdx > -1) {
+        var srEnd = urIdx > -1 ? urIdx : endIdx > -1 ? endIdx : raw.length;
+        var srText = raw.substring(srIdx + 'SESSION RECORD:'.length, srEnd);
+        srText = srText.replace(/^\s*\n---\s*\n/, '\n').replace(/\n---\s*\n?\s*$/, '').trim();
+
+        // Split out human additions
+        var haIdx = srText.indexOf('[HUMAN ADDITION');
+        var messagesText = haIdx > -1 ? srText.substring(0, haIdx) : srText;
+        var humanText = haIdx > -1 ? srText.substring(haIdx) : '';
+
+        // Parse numbered messages
+        var msgPattern = /\[(\d+)\]\s*\n/g;
+        var msgPositions = [];
+        var m;
+        while ((m = msgPattern.exec(messagesText)) !== null) {
+          msgPositions.push({ id: parseInt(m[1]), matchStart: m.index, start: m.index + m[0].length });
+        }
+
+        for (var i = 0; i < msgPositions.length; i++) {
+          var start = msgPositions[i].start;
+          var end = (i + 1 < msgPositions.length) ? msgPositions[i + 1].matchStart : messagesText.length;
+          // Walk back to skip the [n] line of the next message
+          var block = messagesText.substring(start, end).trim();
+          var fields = parseFields(block, ['MESSAGE', 'ROLE']);
+          if (fields.MESSAGE) {
+            trace.sessionMessages.push({
+              id: msgPositions[i].id,
+              message: fields.MESSAGE,
+              role: (fields.ROLE || 'prompt').toLowerCase().trim()
+            });
+          }
+        }
+
+        // Parse human additions
+        if (humanText) {
+          var haParts = humanText.split(/\nTEXT:\s*/);
+          for (var j = 1; j < haParts.length; j++) {
+            var addText = haParts[j].trim().replace(/\n---\s*$/, '').trim();
+            if (addText) trace.humanAdditions.push(addText);
+          }
+          // Also handle first TEXT: on same line as [HUMAN ADDITIONS]
+          var firstText = humanText.match(/\[HUMAN ADDITIONS?\]\s*\nTEXT:\s*([\s\S]*?)(?:\nTEXT:|$)/);
+          if (firstText && trace.humanAdditions.length === 0) {
+            var ft = firstText[1].trim().replace(/\n---\s*$/, '').trim();
+            if (ft) trace.humanAdditions.push(ft);
+          }
+        }
+      }
+
+      // Unit record
+      if (urIdx > -1) {
+        var urEnd = endIdx > -1 ? endIdx : raw.length;
+        var urText = raw.substring(urIdx + 'UNIT RECORD:'.length, urEnd);
+        urText = urText.replace(/^\s*\n---\s*\n/, '\n').replace(/\n---\s*\n?\s*$/, '').trim();
+
+        var unitPattern = /\[UNIT\s+(\d+)\]\s*\n/g;
+        var unitPositions = [];
+        while ((m = unitPattern.exec(urText)) !== null) {
+          unitPositions.push({ id: parseInt(m[1]), matchStart: m.index, start: m.index + m[0].length });
+        }
+
+        for (var k = 0; k < unitPositions.length; k++) {
+          var uStart = unitPositions[k].start;
+          var uEnd = (k + 1 < unitPositions.length) ? unitPositions[k + 1].matchStart : urText.length;
+          var uBlock = urText.substring(uStart, uEnd).trim();
+          var uFields = parseFields(uBlock, ['TEXT', 'PROMPT', 'REACTION', 'TYPE', 'ROUNDS']);
+
+          trace.units.push({
+            id: unitPositions[k].id,
+            text: uFields.TEXT || '',
+            prompt: cleanNullValue(uFields.PROMPT),
+            reaction: cleanNullValue(uFields.REACTION),
+            type: (uFields.TYPE || 'prompted').toLowerCase().trim(),
+            rounds: cleanNullValue(uFields.ROUNDS)
+          });
+        }
+      }
+
+      return trace;
+    }
+
+
+    /* ═══════════════════════════════════════════
+       RENDERER
+       ═══════════════════════════════════════════ */
+
+    function renderOutputParagraphs(text) {
+      var paragraphs = text.split(/\n\n+/);
+      var html = '';
+      for (var i = 0; i < paragraphs.length; i++) {
+        var p = paragraphs[i].trim();
+        if (p) html += '<p>' + escapeHtml(p) + '</p>';
+      }
+      return html;
+    }
+
+    function renderSessionView(trace, containerId) {
+      var container = document.getElementById(containerId);
+      var html = '<div class="session-card">';
+
+      for (var i = 0; i < trace.sessionMessages.length; i++) {
+        var msg = trace.sessionMessages[i];
+        html += '<div class="session-message">';
+        html += '<div class="message-header">';
+        html += '<span class="message-number">[' + msg.id + ']</span>';
+        html += '<span class="role-tag role-' + escapeHtml(msg.role) + '">' + escapeHtml(msg.role.toUpperCase()) + '</span>';
+        html += '</div>';
+        html += '<div class="message-text">' + escapeHtml(msg.message) + '</div>';
+        html += '</div>';
+      }
+
+      for (var j = 0; j < trace.humanAdditions.length; j++) {
+        html += '<div class="human-addition-divider">';
+        html += '<div class="message-header">';
+        html += '<span class="role-tag role-human">HUMAN ADDITION</span>';
+        html += '</div>';
+        html += '<div class="message-text">' + escapeHtml(trace.humanAdditions[j]) + '</div>';
+        html += '</div>';
+      }
+
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function renderUnitView(trace, containerId) {
+      var container = document.getElementById(containerId);
+      var html = '';
+
+      for (var i = 0; i < trace.units.length; i++) {
+        var u = trace.units[i];
+        var safeType = escapeHtml(u.type);
+
+        html += '<div class="trace-unit type-' + safeType + '" data-id="' + u.id + '" onclick="toggleUnit(' + u.id + ')">';
+        html += '<div class="unit-number">UNIT ' + u.id + '</div>';
+        html += '<p>' + escapeHtml(u.text) + '</p>';
+        html += '</div>';
+
+        html += '<div class="annotation" id="annotation-' + u.id + '">';
+        html += '<div class="annotation-inner type-' + safeType + '">';
+        html += '<div class="annotation-label label-' + safeType + '">' + escapeHtml(u.type.toUpperCase()) + '</div>';
+
+        if (u.type === 'human') {
+          html += '<div class="human-note">Written directly by the author. No AI prompt produced this text.</div>';
+        } else {
+          if (u.prompt) html += '<div class="prompt-text">' + escapeHtml(u.prompt) + '</div>';
+          if (u.reaction) {
+            html += '<div class="reaction-label">Reaction</div>';
+            html += '<div class="reaction-text">' + escapeHtml(u.reaction) + '</div>';
+          }
+          if (u.rounds) {
+            html += '<div class="unit-rounds">Rounds: ' + escapeHtml(u.rounds) + '</div>';
+          }
+        }
+
+        html += '</div></div>';
+      }
+
+      container.innerHTML = html;
+    }
+
+    function renderTrace(trace, mode) {
+      var hasSession = trace.sessionMessages.length > 0;
+      var hasUnits = trace.units.length > 0;
+
+      if (mode === 'view') {
+        document.getElementById('view-title').textContent = trace.title;
+        document.title = trace.title ? 'Trace: ' + trace.title : 'Trace';
+
+        // Meta
+        var metaHtml = '';
+        if (trace.date) metaHtml += '<span>' + escapeHtml(trace.date) + '</span>';
+        if (trace.tool) metaHtml += '<span>' + escapeHtml(trace.tool) + '</span>';
+        document.getElementById('view-meta').innerHTML = metaHtml;
+
+        // Final output
+        document.getElementById('view-output').innerHTML = renderOutputParagraphs(trace.finalOutput);
+
+        // Session view
+        if (hasSession) renderSessionView(trace, 'session-container');
+        if (hasUnits) renderUnitView(trace, 'unit-container');
+
+        // View toggle
+        var toggleEl = document.getElementById('view-toggle');
+        if (hasSession && hasUnits) {
+          toggleEl.innerHTML =
+            '<button class="view-toggle-btn active" id="btn-session" onclick="switchView(\'session\')">Session view</button>' +
+            '<button class="view-toggle-btn" id="btn-unit" onclick="switchView(\'unit\')">Unit view</button>';
+          document.getElementById('view-session').classList.add('active');
+          document.getElementById('view-unit').classList.remove('active');
+        } else if (hasSession) {
+          toggleEl.innerHTML = '';
+          document.getElementById('view-session').classList.add('active');
+          document.getElementById('view-unit').style.display = 'none';
+        } else if (hasUnits) {
+          toggleEl.innerHTML = '';
+          document.getElementById('view-session').style.display = 'none';
+          document.getElementById('view-unit').classList.add('active');
+        } else {
+          document.getElementById('trace-record-section').style.display = 'none';
+        }
+
+      } else {
+        // Preview mode (inside create)
+        var previewContainer = document.getElementById('preview-container');
+        var html = '';
+
+        // Doc header
+        html += '<div class="doc-header">';
+        html += '<div class="doc-label">TRACE</div>';
+        html += '<h2 class="doc-title">' + escapeHtml(trace.title) + '</h2>';
+        html += '<div class="doc-meta">';
+        if (trace.date) html += '<span>' + escapeHtml(trace.date) + '</span>';
+        if (trace.tool) html += '<span>' + escapeHtml(trace.tool) + '</span>';
+        html += '</div></div>';
+
+        // Final output
+        html += '<div class="final-output">';
+        html += '<div class="section-label">Final Output</div>';
+        html += '<div class="output-text">' + renderOutputParagraphs(trace.finalOutput) + '</div>';
+        html += '</div>';
+
+        // Trace record
+        if (hasSession || hasUnits) {
+          html += '<div class="trace-record">';
+          html += '<div class="section-label">Trace Record</div>';
+
+          if (hasSession && hasUnits) {
+            html += '<div class="view-toggle">';
+            html += '<button class="view-toggle-btn active" onclick="switchPreviewView(\'session\')">Session view</button>';
+            html += '<button class="view-toggle-btn" onclick="switchPreviewView(\'unit\')">Unit view</button>';
+            html += '</div>';
+          }
+
+          if (hasSession) {
+            html += '<div class="view-container' + (hasSession ? ' active' : '') + '" id="preview-session">';
+            html += '<p class="trace-instruction">The conversation that produced the final text, in order.</p>';
+            html += '<div id="preview-session-container"></div>';
+            html += '</div>';
+          }
+
+          if (hasUnits) {
+            html += '<div class="view-container' + (!hasSession ? ' active' : '') + '" id="preview-unit">';
+            html += '<p class="trace-instruction">Click any paragraph to see the prompt that produced it.</p>';
+            html += '<div class="controls"><button class="reveal-btn" id="preview-reveal-btn" onclick="revealAllPreview()">Reveal all</button></div>';
+            html += '<div id="preview-unit-container"></div>';
+            html += '</div>';
+          }
+
+          html += '</div>';
+        }
+
+        previewContainer.innerHTML = html;
+
+        // Populate session and unit views
+        if (hasSession) renderSessionView(trace, 'preview-session-container');
+        if (hasUnits) renderUnitView(trace, 'preview-unit-container');
+      }
+    }
+
+
+    /* ═══════════════════════════════════════════
+       UI CONTROLLERS
+       ═══════════════════════════════════════════ */
+
+    // View mode toggle
+    function switchView(view) {
+      document.getElementById('view-session').classList.remove('active');
+      document.getElementById('view-unit').classList.remove('active');
+      var btnS = document.getElementById('btn-session');
+      var btnU = document.getElementById('btn-unit');
+      if (btnS) btnS.classList.remove('active');
+      if (btnU) btnU.classList.remove('active');
+
+      document.getElementById('view-' + view).classList.add('active');
+      var btn = document.getElementById('btn-' + view);
+      if (btn) btn.classList.add('active');
+    }
+
+    // Preview toggle
+    function switchPreviewView(view) {
+      var sessionEl = document.getElementById('preview-session');
+      var unitEl = document.getElementById('preview-unit');
+      if (sessionEl) sessionEl.classList.remove('active');
+      if (unitEl) unitEl.classList.remove('active');
+
+      var target = document.getElementById('preview-' + view);
+      if (target) target.classList.add('active');
+
+      // Toggle buttons
+      var toggle = target.closest('.trace-record').querySelector('.view-toggle');
+      if (toggle) {
+        var btns = toggle.querySelectorAll('.view-toggle-btn');
+        for (var i = 0; i < btns.length; i++) {
+          btns[i].classList.remove('active');
+          if (btns[i].textContent.toLowerCase().indexOf(view) > -1) {
+            btns[i].classList.add('active');
+          }
+        }
+      }
+    }
+
+    // Unit toggle (view mode)
+    function toggleUnit(id) {
+      var annotation = document.getElementById('annotation-' + id);
+      var unit = document.querySelector('.trace-unit[data-id="' + id + '"]');
+      if (annotation) annotation.classList.toggle('open');
+      if (unit) unit.classList.toggle('open');
+      updateRevealBtn();
+    }
+
+    function revealAll() {
+      var annotations = document.querySelectorAll('#view-mode .annotation');
+      var units = document.querySelectorAll('#view-mode .trace-unit');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      for (var i = 0; i < annotations.length; i++) {
+        if (allOpen) { annotations[i].classList.remove('open'); units[i].classList.remove('open'); }
+        else { annotations[i].classList.add('open'); units[i].classList.add('open'); }
+      }
+      updateRevealBtn();
+    }
+
+    function updateRevealBtn() {
+      var annotations = document.querySelectorAll('#view-mode .annotation');
+      var btn = document.getElementById('reveal-btn');
+      if (!btn || annotations.length === 0) return;
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      btn.textContent = allOpen ? 'Collapse all' : 'Reveal all';
+    }
+
+    function revealAllPreview() {
+      var annotations = document.querySelectorAll('#preview-container .annotation');
+      var units = document.querySelectorAll('#preview-container .trace-unit');
+      var allOpen = true;
+      for (var i = 0; i < annotations.length; i++) {
+        if (!annotations[i].classList.contains('open')) { allOpen = false; break; }
+      }
+      for (var i = 0; i < annotations.length; i++) {
+        if (allOpen) { annotations[i].classList.remove('open'); units[i].classList.remove('open'); }
+        else { annotations[i].classList.add('open'); units[i].classList.add('open'); }
+      }
+      var btn = document.getElementById('preview-reveal-btn');
+      if (btn) btn.textContent = allOpen ? 'Reveal all' : 'Collapse all';
+    }
+
+    function copyUrl() {
+      var urlInput = document.getElementById('share-url');
+      navigator.clipboard.writeText(urlInput.value).then(function() {
+        var btn = document.getElementById('copy-url-btn');
+        var original = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(function() { btn.textContent = original; }, 1500);
+      });
+    }
+
+    function startOver() {
+      document.getElementById('result-section').style.display = 'none';
+      document.getElementById('error-msg').style.display = 'none';
+      document.getElementById('trace-input').value = '';
+      document.getElementById('trace-input').focus();
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+
+
+    /* ═══════════════════════════════════════════
+       GENERATE
+       ═══════════════════════════════════════════ */
+
+    async function generate() {
+      var input = document.getElementById('trace-input').value.trim();
+      var errorEl = document.getElementById('error-msg');
+      errorEl.style.display = 'none';
+
+      if (!input) {
+        errorEl.textContent = 'Paste your Trace output into the text area above.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      var trace;
+      try {
+        trace = parseTrace(input);
+      } catch (e) {
+        errorEl.textContent = 'Could not parse this as a Trace document. Make sure you pasted the full output from the AI, starting with --- and ending with END TRACE.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      if (!trace.finalOutput && trace.sessionMessages.length === 0 && trace.units.length === 0) {
+        errorEl.textContent = 'This doesn\u2019t look like a Trace document. A valid Trace should have at least a FINAL OUTPUT section, a SESSION RECORD, or a UNIT RECORD. Make sure you pasted the full output from the AI.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      // Render preview
+      renderTrace(trace, 'preview');
+
+      // Generate URL
+      var compressed = await compressTrace(input);
+      var url = window.location.origin + window.location.pathname + '#trace=' + compressed;
+      document.getElementById('share-url').value = url;
+
+      // URL length warning
+      var noteEl = document.getElementById('url-note');
+      if (url.length > 50000) {
+        noteEl.textContent = 'This URL is very long (' + Math.round(url.length / 1000) + 'KB). Some browsers or platforms may truncate it when sharing. Consider shortening your Trace output.';
+      } else {
+        noteEl.textContent = 'Anyone with this link can view your Trace. No data is stored on a server \u2014 the entire document is encoded in the URL.';
+      }
+
+      document.getElementById('result-section').style.display = 'block';
+      document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+    }
+
+
+    /* ═══════════════════════════════════════════
+       INIT
+       ═══════════════════════════════════════════ */
+
+    async function init() {
+      var hash = window.location.hash;
+      if (hash && hash.indexOf('#trace=') === 0) {
+        var data = hash.substring(7);
+        try {
+          var text = await decompressTrace(data);
+          var trace = parseTrace(text);
+
+          if (!trace.finalOutput && trace.sessionMessages.length === 0 && trace.units.length === 0) {
+            throw new Error('empty trace');
+          }
+
+          document.getElementById('create-mode').style.display = 'none';
+          document.getElementById('view-mode').style.display = 'block';
+          renderTrace(trace, 'view');
+        } catch (e) {
+          // If decompression or parsing fails, show create mode
+          console.error('Failed to load trace from URL:', e);
+        }
+      }
+    }
+
+    init();
+  </script>
+
+</body>
+</html>
