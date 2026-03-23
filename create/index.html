@@ -830,10 +830,18 @@
     }
 
     function parseTrace(raw) {
-      raw = raw.replace(/\r\n/g, '\n').trim();
+      raw = raw.replace(/\r\n/g, '\n');
 
       // Strip markdown code fences
       raw = raw.replace(/^```[^\n]*\n/, '').replace(/\n```\s*$/, '');
+
+      // Normalize: trim each line's trailing whitespace, collapse 3+ blank lines to 2
+      raw = raw.split('\n').map(function(l) { return l.replace(/\s+$/, ''); }).join('\n');
+      raw = raw.replace(/\n{3,}/g, '\n\n');
+      raw = raw.trim();
+
+      // Normalize --- lines: treat any line that's just dashes (2+) with optional whitespace as ---
+      raw = raw.replace(/^[ \t]*-{2,}[ \t]*$/gm, '---');
 
       var trace = {
         title: '', date: '', tool: '',
@@ -842,8 +850,12 @@
         units: []
       };
 
-      // Header
-      var headerMatch = raw.match(/---\s*\n\s*TRACE\s*\n([\s\S]*?)\n\s*---/);
+      // Header: find TRACE keyword near a --- line
+      var headerMatch = raw.match(/---\n\s*TRACE\s*\n([\s\S]*?)\n---/);
+      if (!headerMatch) {
+        // Try looser: just find TRACE at start of a line followed by title lines before ---
+        headerMatch = raw.match(/^\s*TRACE\s*\n([\s\S]*?)\n---/m);
+      }
       if (headerMatch) {
         var hLines = headerMatch[1].trim().split('\n');
         trace.title = (hLines[0] || '').trim();
@@ -851,43 +863,61 @@
         trace.tool = (hLines[2] || '').trim();
       }
 
-      // Section boundaries
-      var foIdx = raw.indexOf('FINAL OUTPUT:');
-      var srIdx = raw.indexOf('SESSION RECORD:');
-      var urIdx = raw.indexOf('UNIT RECORD:');
-      var endIdx = raw.indexOf('END TRACE');
-
-      // Final output
-      if (foIdx > -1) {
-        var foEnd = srIdx > -1 ? srIdx : urIdx > -1 ? urIdx : endIdx > -1 ? endIdx : raw.length;
-        var foText = raw.substring(foIdx + 'FINAL OUTPUT:'.length, foEnd);
-        foText = foText.replace(/^\s*\n---\s*\n/, '\n').replace(/\n---\s*\n?\s*$/, '').trim();
-        trace.finalOutput = foText;
+      // Section boundaries (case-insensitive, allow leading whitespace)
+      function findSection(name) {
+        var pattern = new RegExp('^[ \\t]*' + name + '[ \\t]*:?[ \\t]*$', 'mi');
+        var match = raw.match(pattern);
+        return match ? match.index : -1;
       }
 
-      // Session record
-      if (srIdx > -1) {
-        var srEnd = urIdx > -1 ? urIdx : endIdx > -1 ? endIdx : raw.length;
-        var srText = raw.substring(srIdx + 'SESSION RECORD:'.length, srEnd);
-        srText = srText.replace(/^\s*\n---\s*\n/, '\n').replace(/\n---\s*\n?\s*$/, '').trim();
+      var foIdx = findSection('FINAL OUTPUT');
+      var srIdx = findSection('SESSION RECORD');
+      var urIdx = findSection('UNIT RECORD');
+      var endIdx = raw.search(/^\s*-*\s*END TRACE\s*-*\s*$/mi);
 
+      // Extract section text between boundaries
+      function extractSection(startIdx, label, nextBoundaries) {
+        if (startIdx < 0) return '';
+        var lineEnd = raw.indexOf('\n', startIdx);
+        var contentStart = lineEnd > -1 ? lineEnd + 1 : startIdx + label.length;
+        var contentEnd = raw.length;
+        for (var i = 0; i < nextBoundaries.length; i++) {
+          if (nextBoundaries[i] > -1 && nextBoundaries[i] > startIdx) {
+            contentEnd = Math.min(contentEnd, nextBoundaries[i]);
+          }
+        }
+        var text = raw.substring(contentStart, contentEnd);
+        // Strip leading/trailing --- lines
+        text = text.replace(/^\s*---\s*\n/, '').replace(/\n\s*---\s*$/, '');
+        return text.trim();
+      }
+
+      // Final output
+      var foText = extractSection(foIdx, 'FINAL OUTPUT', [srIdx, urIdx, endIdx]);
+      trace.finalOutput = foText;
+
+      // Session record
+      var srText = extractSection(srIdx, 'SESSION RECORD', [urIdx, endIdx]);
+      if (srText) {
         // Split out human additions
-        var haIdx = srText.indexOf('[HUMAN ADDITION');
+        var haMatch = srText.match(/\[HUMAN ADDITION/i);
+        var haIdx = haMatch ? srText.indexOf(haMatch[0]) : -1;
         var messagesText = haIdx > -1 ? srText.substring(0, haIdx) : srText;
         var humanText = haIdx > -1 ? srText.substring(haIdx) : '';
 
-        // Parse numbered messages
-        var msgPattern = /\[(\d+)\]\s*\n/g;
+        // Parse numbered messages — flexible: [1] or [1] with surrounding whitespace
+        var msgPattern = /^\s*\[(\d+)\]\s*$/gm;
         var msgPositions = [];
         var m;
         while ((m = msgPattern.exec(messagesText)) !== null) {
-          msgPositions.push({ id: parseInt(m[1]), matchStart: m.index, start: m.index + m[0].length });
+          var lineEnd = messagesText.indexOf('\n', m.index + m[0].length);
+          var contentStart = lineEnd > -1 ? lineEnd + 1 : m.index + m[0].length;
+          msgPositions.push({ id: parseInt(m[1]), matchStart: m.index, start: contentStart });
         }
 
         for (var i = 0; i < msgPositions.length; i++) {
           var start = msgPositions[i].start;
           var end = (i + 1 < msgPositions.length) ? msgPositions[i + 1].matchStart : messagesText.length;
-          // Walk back to skip the [n] line of the next message
           var block = messagesText.substring(start, end).trim();
           var fields = parseFields(block, ['MESSAGE', 'ROLE']);
           if (fields.MESSAGE) {
@@ -901,30 +931,34 @@
 
         // Parse human additions
         if (humanText) {
-          var haParts = humanText.split(/\nTEXT:\s*/);
-          for (var j = 1; j < haParts.length; j++) {
-            var addText = haParts[j].trim().replace(/\n---\s*$/, '').trim();
-            if (addText) trace.humanAdditions.push(addText);
+          var textPattern = /^TEXT:/gm;
+          var textPositions = [];
+          while ((m = textPattern.exec(humanText)) !== null) {
+            textPositions.push(m.index + m[0].length);
           }
-          // Also handle first TEXT: on same line as [HUMAN ADDITIONS]
-          var firstText = humanText.match(/\[HUMAN ADDITIONS?\]\s*\nTEXT:\s*([\s\S]*?)(?:\nTEXT:|$)/);
-          if (firstText && trace.humanAdditions.length === 0) {
-            var ft = firstText[1].trim().replace(/\n---\s*$/, '').trim();
-            if (ft) trace.humanAdditions.push(ft);
+          for (var j = 0; j < textPositions.length; j++) {
+            var tStart = textPositions[j];
+            var tEnd = (j + 1 < textPositions.length) ? textPositions[j + 1] : humanText.length;
+            // Walk back to before the next TEXT: line
+            var nextTextLine = humanText.lastIndexOf('\n', tEnd - 1);
+            if (j + 1 < textPositions.length && nextTextLine > tStart) {
+              tEnd = nextTextLine;
+            }
+            var addText = humanText.substring(tStart, tEnd).replace(/\n\s*---\s*$/, '').trim();
+            if (addText) trace.humanAdditions.push(addText);
           }
         }
       }
 
       // Unit record
-      if (urIdx > -1) {
-        var urEnd = endIdx > -1 ? endIdx : raw.length;
-        var urText = raw.substring(urIdx + 'UNIT RECORD:'.length, urEnd);
-        urText = urText.replace(/^\s*\n---\s*\n/, '\n').replace(/\n---\s*\n?\s*$/, '').trim();
-
-        var unitPattern = /\[UNIT\s+(\d+)\]\s*\n/g;
+      var urText = extractSection(urIdx, 'UNIT RECORD', [endIdx]);
+      if (urText) {
+        var unitPattern = /^\s*\[UNIT\s+(\d+)\]\s*$/gm;
         var unitPositions = [];
         while ((m = unitPattern.exec(urText)) !== null) {
-          unitPositions.push({ id: parseInt(m[1]), matchStart: m.index, start: m.index + m[0].length });
+          var lineEnd = urText.indexOf('\n', m.index + m[0].length);
+          var contentStart = lineEnd > -1 ? lineEnd + 1 : m.index + m[0].length;
+          unitPositions.push({ id: parseInt(m[1]), matchStart: m.index, start: contentStart });
         }
 
         for (var k = 0; k < unitPositions.length; k++) {
