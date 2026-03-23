@@ -800,8 +800,7 @@
       var fields = {};
       var currentField = null;
       var currentValue = [];
-      var pattern = new RegExp('^(' + fieldNames.join('|') + '):\\\\s*(.*)');
-
+      var pattern = new RegExp('^(' + fieldNames.join('|') + '):\\s*(.*)');
       for (var i = 0; i < lines.length; i++) {
         var match = lines[i].match(pattern);
         if (match) {
